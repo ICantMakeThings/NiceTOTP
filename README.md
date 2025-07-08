@@ -12,8 +12,8 @@ Hardware is a [Nice!Nano](https://s.click.aliexpress.com/e/_omlmCuu), RTC, Displ
 
 # Usage
 Commands:
-- `setunixtime` example: `setunixtime 1751925355` ([Compare](https://totp.danhersam.com/?secret=JBSWY3DPEHPK3PXP))
-- `add <username> <base32secret>` example: `add test JBSWY3DPEHPK3PXP`
+- `setunixtime` example: `setunixtime 1751925355` 
+- `add <username> <base32secret>` example: `add test JBSWY3DPEHPK3PXP` ([Compare](https://totp.danhersam.com/?secret=JBSWY3DPEHPK3PXP))
 - `list`
 - `del <GetTheIDFromListCommand>` example: `del 1`
 - `factoryreset` (Power cycle after)
