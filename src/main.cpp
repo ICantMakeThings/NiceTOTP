@@ -4,8 +4,8 @@
 // u = up button
 // d = down button
 // commands include:
-// setunixtime 
-// add <username> <base32secret> 
+// setunixtime
+// add <username> <base32secret>
 // factoryreset (power cycle the device)
 // list
 // del <GetTheIDFromListCommand>
@@ -22,6 +22,10 @@
 #include "TOTP++.h"
 #include <Fonts/FreeSansBold9pt7b.h>
 
+#include <nrf.h>
+#include <nrf_power.h>
+#include <nrf_gpio.h>
+
 using namespace Adafruit_LittleFS_Namespace;
 
 RTC_DS3231 rtc;
@@ -37,14 +41,23 @@ const uint8_t lockIcon8x8[] PROGMEM = {
     0b00111100  //   ████
 };
 
+bool pinError = false;
+unsigned long pinErrorTime = 0;
+int failedAttempts = 0;
+const int maxFailedAttempts = 10;
+bool tempUnlock = true;
+
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
 #define OLED_RESET -1
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define BUTTON_UP_PIN PIN_011
-#define BUTTON_DOWN_PIN PIN_100
+#define BUTTON_UP_PIN PIN_024
+#define BUTTON_DOWN_PIN PIN_022
+
+unsigned long lastActivityTime = 0;
+const unsigned long inactivityTimeout = 60000;
 
 const int MAX_PIN_LENGTH = 20;
 const char *PIN_FILENAME = "/pin.dat";
@@ -86,6 +99,17 @@ void savePin()
     Serial.println("Failed to mount FS");
     return;
   }
+
+  if (devicePinLength == 0)
+  {
+    if (InternalFS.exists(PIN_FILENAME))
+    {
+      InternalFS.remove(PIN_FILENAME);
+      Serial.println("PIN file removed (no PIN set).");
+    }
+    return;
+  }
+
   File f = InternalFS.open(PIN_FILENAME, FILE_O_WRITE);
   if (!f)
   {
@@ -225,7 +249,6 @@ void displayCode()
   }
   else if (locked)
   {
-    display.clearDisplay();
     display.drawBitmap(0, 0, lockIcon8x8, 8, 8, WHITE);
     char masked[devicePinLength + 1];
     for (int i = 0; i < inputIndex; i++)
@@ -327,53 +350,60 @@ void displayCode()
 
 void handleButtons()
 {
-  static uint32_t lastDebounceTime = 0;
+  static uint32_t lastDebounceTimeUp = 0;
+  static uint32_t lastDebounceTimeDown = 0;
   const uint32_t debounceDelay = 50;
 
   bool upState = digitalRead(BUTTON_UP_PIN) == LOW;
   bool downState = digitalRead(BUTTON_DOWN_PIN) == LOW;
 
+  uint32_t currentMillis = millis();
+
   if (inPinSetup)
   {
-    if (upState && !buttonUpPressed && millis() - lastDebounceTime > debounceDelay)
+    if (upState && !buttonUpPressed && (currentMillis - lastDebounceTimeUp > debounceDelay))
     {
       buttonUpPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeUp = currentMillis;
 
       if (inputIndex < MAX_PIN_LENGTH)
       {
         inputBuffer[inputIndex++] = 'u';
         inputBuffer[inputIndex] = 0;
-        lastPinInputTime = millis();
+        lastPinInputTime = currentMillis;
+
         Serial.print("PIN so far: ");
         Serial.println(inputBuffer);
       }
+      lastActivityTime = currentMillis;
     }
     else if (!upState)
     {
       buttonUpPressed = false;
     }
 
-    if (downState && !buttonDownPressed && millis() - lastDebounceTime > debounceDelay)
+    if (downState && !buttonDownPressed && (currentMillis - lastDebounceTimeDown > debounceDelay))
     {
       buttonDownPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeDown = currentMillis;
 
       if (inputIndex < MAX_PIN_LENGTH)
       {
         inputBuffer[inputIndex++] = 'd';
         inputBuffer[inputIndex] = 0;
-        lastPinInputTime = millis();
+        lastPinInputTime = currentMillis;
+
         Serial.print("PIN so far: ");
         Serial.println(inputBuffer);
       }
+      lastActivityTime = currentMillis;
     }
     else if (!downState)
     {
       buttonDownPressed = false;
     }
 
-    if (inputIndex > 0 && (millis() - lastPinInputTime) > pinSetupTimeout)
+    if (inputIndex > 0 && (currentMillis - lastPinInputTime) > pinSetupTimeout)
     {
       Serial.print("PIN entry done, saving: ");
       Serial.println(inputBuffer);
@@ -384,22 +414,25 @@ void handleButtons()
       savePin();
       locked = true;
       inPinSetup = false;
+
       inputIndex = 0;
       memset(inputBuffer, 0, sizeof(inputBuffer));
+
       Serial.println("PIN saved, device locked.");
     }
   }
   else if (locked)
   {
-    if (upState && !buttonUpPressed && millis() - lastDebounceTime > debounceDelay)
+    if (upState && !buttonUpPressed && (currentMillis - lastDebounceTimeUp > debounceDelay))
     {
       buttonUpPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeUp = currentMillis;
 
       if (inputIndex < devicePinLength)
       {
         inputBuffer[inputIndex++] = 'u';
       }
+
       if (inputIndex == devicePinLength)
       {
         inputBuffer[inputIndex] = 0;
@@ -407,29 +440,58 @@ void handleButtons()
         {
           locked = false;
           Serial.println("Unlocked!");
+          failedAttempts = 0;
         }
         else
         {
           Serial.println("AYOO? Tranna steal???");
+          pinError = true;
+          pinErrorTime = currentMillis;
+          failedAttempts++;
+
+          if (failedAttempts >= maxFailedAttempts)
+          {
+            Serial.println("Too many failed attempts. Wiping device...");
+
+            keysCount = 0;
+            saveKeys();
+
+            memset(devicePin, 0, sizeof(devicePin));
+            devicePinLength = 0;
+            pinSet = false;
+
+            if (InternalFS.begin())
+            {
+              if (InternalFS.exists(PIN_FILENAME))
+                InternalFS.remove(PIN_FILENAME);
+            }
+
+            locked = false;
+            inPinSetup = true;
+
+            inputIndex = 0;
+            memset(inputBuffer, 0, sizeof(inputBuffer));
+          }
         }
-        memset(inputBuffer, 0, sizeof(inputBuffer));
         inputIndex = 0;
+        memset(inputBuffer, 0, sizeof(inputBuffer));
       }
+      lastActivityTime = currentMillis;
     }
     else if (!upState)
     {
       buttonUpPressed = false;
     }
-
-    if (downState && !buttonDownPressed && millis() - lastDebounceTime > debounceDelay)
+    if (downState && !buttonDownPressed && (currentMillis - lastDebounceTimeDown > debounceDelay))
     {
       buttonDownPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeDown = currentMillis;
 
       if (inputIndex < devicePinLength)
       {
         inputBuffer[inputIndex++] = 'd';
       }
+
       if (inputIndex == devicePinLength)
       {
         inputBuffer[inputIndex] = 0;
@@ -437,14 +499,44 @@ void handleButtons()
         {
           locked = false;
           Serial.println("Unlocked!");
+          failedAttempts = 0;
         }
         else
         {
           Serial.println("AYOO? Tranna steal???");
+          pinError = true;
+          pinErrorTime = currentMillis;
+          failedAttempts++;
+
+          if (failedAttempts >= maxFailedAttempts)
+          {
+            Serial.println("Too many failed attempts. Wiping device...");
+
+            keysCount = 0;
+            saveKeys();
+
+            memset(devicePin, 0, sizeof(devicePin));
+            devicePinLength = 0;
+            pinSet = false;
+
+            if (InternalFS.begin())
+            {
+              if (InternalFS.exists(PIN_FILENAME))
+                InternalFS.remove(PIN_FILENAME);
+            }
+
+            locked = false;
+            inPinSetup = true;
+
+            inputIndex = 0;
+            memset(inputBuffer, 0, sizeof(inputBuffer));
+          }
         }
-        memset(inputBuffer, 0, sizeof(inputBuffer));
+
         inputIndex = 0;
+        memset(inputBuffer, 0, sizeof(inputBuffer));
       }
+      lastActivityTime = currentMillis;
     }
     else if (!downState)
     {
@@ -453,32 +545,36 @@ void handleButtons()
   }
   else
   {
-    if (upState && !buttonUpPressed && millis() - lastDebounceTime > debounceDelay)
+    if (upState && !buttonUpPressed && (currentMillis - lastDebounceTimeUp > debounceDelay))
     {
       buttonUpPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeUp = currentMillis;
+
       if (keysCount > 0)
       {
         selectedKeyIndex--;
         if (selectedKeyIndex < 0)
           selectedKeyIndex = keysCount - 1;
       }
+      lastActivityTime = currentMillis;
     }
     else if (!upState)
     {
       buttonUpPressed = false;
     }
 
-    if (downState && !buttonDownPressed && millis() - lastDebounceTime > debounceDelay)
+    if (downState && !buttonDownPressed && (currentMillis - lastDebounceTimeDown > debounceDelay))
     {
       buttonDownPressed = true;
-      lastDebounceTime = millis();
+      lastDebounceTimeDown = currentMillis;
+
       if (keysCount > 0)
       {
         selectedKeyIndex++;
         if (selectedKeyIndex >= keysCount)
           selectedKeyIndex = 0;
       }
+      lastActivityTime = currentMillis;
     }
     else if (!downState)
     {
@@ -490,17 +586,17 @@ void handleButtons()
 void processSerialInput()
 {
   static String serialLine;
+
   while (Serial.available())
   {
     char c = (char)Serial.read();
+
     if (c == '\n' || c == '\r')
     {
       if (serialLine.length() > 0)
       {
         serialLine.trim();
 
-        // To add keys: add <username> <base32secret>
-        // dont add the < >
         if (serialLine.startsWith("add "))
         {
           serialLine.remove(0, 4);
@@ -520,8 +616,8 @@ void processSerialInput()
             }
             else
             {
-              username.toCharArray(keys[keysCount].username, 16);
-              secret.toCharArray(keys[keysCount].base32secret, 33);
+              username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+              secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
               keysCount++;
               saveKeys();
               Serial.print("Added key: ");
@@ -533,11 +629,11 @@ void processSerialInput()
             Serial.println("Invalid add command. Format: add username base32secret");
           }
         }
-        // Set Unix time: setunixtime 1700000000
         else if (serialLine.startsWith("setunixtime "))
         {
           String epochStr = serialLine.substring(11);
           unsigned long epoch = epochStr.toInt();
+
           if (epoch == 0)
           {
             Serial.println("Hmm, Invalid.");
@@ -548,13 +644,13 @@ void processSerialInput()
             Serial.println("New time set!");
           }
         }
-        // factoryreset to factoryreset
         else if (serialLine == "factoryreset")
         {
           if (InternalFS.begin())
           {
             if (InternalFS.exists(PIN_FILENAME))
               InternalFS.remove(PIN_FILENAME);
+
             if (InternalFS.exists(KEYS_FILENAME))
               InternalFS.remove(KEYS_FILENAME);
 
@@ -570,10 +666,7 @@ void processSerialInput()
           {
             Serial.println("FS mount failed");
           }
-          serialLine = "";
-          return;
         }
-
         else if (serialLine.startsWith("del "))
         {
           int index = serialLine.substring(4).toInt();
@@ -593,8 +686,7 @@ void processSerialInput()
             Serial.println("Invalid key index");
           }
         }
-
-        if (serialLine == "list")
+        else if (serialLine == "list")
         {
           if (locked)
           {
@@ -643,7 +735,41 @@ void processSerialInput()
   }
 }
 
-void setup(){
+void configureWakeupButtons() {
+  nrf_gpio_cfg_sense_input(BUTTON_UP_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+  nrf_gpio_cfg_sense_input(BUTTON_DOWN_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
+}
+
+void ultraSleep() {
+  configureWakeupButtons();
+
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  display.clearDisplay();
+  display.display();
+
+  delay(100);
+
+  NRF_POWER->SYSTEMOFF = 1;
+
+  while (true) {}
+}
+
+void enterUltraSleep() {
+  Serial.println("Entering ultra sleep...");
+
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  display.clearDisplay();
+  display.display();
+
+  delay(100);
+
+  NRF_POWER->SYSTEMOFF = 1;
+}
+
+
+void setup()
+{
+  configureWakeupButtons();
   Serial.begin(115200);
 
   Serial.println("Starting...");
@@ -670,20 +796,25 @@ void setup(){
   loadPin();
   loadKeys();
 
-  if (!pinSet) {
+  if (!pinSet)
+  {
     inPinSetup = true;
     inputIndex = 0;
     memset(inputBuffer, 0, sizeof(inputBuffer));
-    lastPinInputTime = millis();  // Ensure timeout starts
+    lastPinInputTime = millis();
   }
 
   locked = pinSet;
 }
 
-void loop()
-{
+void loop() {
   handleButtons();
   processSerialInput();
   displayCode();
-  delay(200);
+
+  if (millis() - lastActivityTime > inactivityTimeout && !locked && !inPinSetup) {
+    enterUltraSleep();
+  }
+
+  delay(50);
 }

@@ -1,0 +1,25 @@
+#include <Arduino.h>
+#include <Adafruit_LittleFS.h>
+#include <InternalFileSystem.h>
+
+using namespace Adafruit_LittleFS_Namespace;
+
+const char *PIN_FILENAME = "/pin.dat";
+const char *KEYS_FILENAME = "/keys.dat";
+
+void setup() {
+  if (!InternalFS.begin()) {
+    return; // Abort if FS mount fails
+  }
+
+  if (InternalFS.exists(PIN_FILENAME)) {
+    InternalFS.remove(PIN_FILENAME);
+  }
+
+  if (InternalFS.exists(KEYS_FILENAME)) {
+    InternalFS.remove(KEYS_FILENAME);
+  }
+}
+
+void loop() {
+}
