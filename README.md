@@ -5,16 +5,26 @@ Verry niceeee ;>
 ![image](https://github.com/user-attachments/assets/9e1d1964-7a27-409e-9797-75acddbb5771)
 
 ## What is NiceTOTP?
-Time-based one-time password (TOTP), 2FA, A alternetive to Authy / Authenticator
 
-Hardware is:
+Time-based one-time password (TOTP). aka: 2FA!
+
+A alternetive to [Authy](https://www.authy.com/) / [Google Authenticator](https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2). 
+
+Full offline. And Standalone once all Keys have been added.
+
+I *mighttt* make a app to simply configure it.
+
+## Hardware is:
 + Nice!Nano: [AliExpress Link](https://s.click.aliexpress.com/e/_omlmCuu)
 + DS3231 RTC: [AliExpress Link](https://s.click.aliexpress.com/e/_omVV4ia)
 + 0.96Inch Display: [AliExpress Link](https://s.click.aliexpress.com/e/_ooXwYgq)
 + 6*6 Silicone Switch: [AliExpress Link](https://s.click.aliexpress.com/e/_oDcs8Wa)
-+ 3D model
++ 3D [model](https://www.thingiverse.com/thing:7087241)
 
-*Note: Thease are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
+*Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
+
+![image](https://github.com/user-attachments/assets/e60bd7d0-8f01-4dfb-97a4-499b21477dde)
+
 
 # Usage
 Commands:
@@ -30,7 +40,4 @@ More.
 + Build and flash the project with platformio (Make sure you add nicenano support [here](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support))
 + Or Drag and drop the .UF2 onto the nicenano drive when doubble clicking reset (short rst pin with usbc sheild tapping twice quickly)
 
-# Plans
-maybe a app for easy configuration.
-
-Full offline, if possible. (Kinda iffy abt the app. ill see.)
+More info [Here](https://icmt.cc/p/nicetotp/)
