@@ -14,7 +14,7 @@ Hardware is:
 + 6*6 Silicone Switch: [AliExpress Link](https://s.click.aliexpress.com/e/_oDcs8Wa)
 + 3D model
 
-*Note: Thease are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
+*Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
 
 # Usage
 Commands:
