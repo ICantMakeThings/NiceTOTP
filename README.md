@@ -19,7 +19,7 @@ I *mighttt* make a app to simply configure it.
 + DS3231 RTC: [AliExpress Link](https://s.click.aliexpress.com/e/_omVV4ia)
 + 0.96Inch Display: [AliExpress Link](https://s.click.aliexpress.com/e/_ooXwYgq)
 + 6*6 Silicone Switch: [AliExpress Link](https://s.click.aliexpress.com/e/_oDcs8Wa)
-+ 3D model
++ 3D [model](https://www.thingiverse.com/thing:7087241)
 
 *Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
 
