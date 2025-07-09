@@ -545,7 +545,13 @@ void enterUltraSleep() {
 }
 
 void setup() {
+
+  pinMode(PIN_013, OUTPUT);
+  digitalWrite(PIN_013, HIGH);
+  delay(1000);
+
   Serial.begin(115200);
+
   pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
   pinMode(BUTTON_DOWN_PIN, INPUT_PULLUP);
 
@@ -571,7 +577,7 @@ void setup() {
     resetInputBuffer();
     lastPinInputTime = millis();
   }
-
+/*
   Bluefruit.begin();
   bleuart.begin();
   Bluefruit.setName("NiceTOTP");
@@ -579,7 +585,7 @@ void setup() {
   Bluefruit.Advertising.addTxPower();
   Bluefruit.Advertising.addService(bleuart);
   Bluefruit.Advertising.start();
-
+*/
 
   locked = pinSet;
   lastActivityTime = millis();
@@ -588,7 +594,7 @@ void setup() {
 void loop() {
   handleButtons();
   processSerialInput();
-  processBleInput();
+  //processBleInput();
   displayCode();
 
   if ((millis() - lastActivityTime) > INACTIVITY_TIMEOUT && !locked && !inPinSetup) {
