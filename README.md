@@ -1,9 +1,8 @@
 # NiceTOTP
-![image](https://github.com/user-attachments/assets/dd198143-42ab-411d-8e02-c3c05d778843)
 
 Verry niceeee ;>
 
-![image](https://github.com/user-attachments/assets/2a587c2c-2204-4d0f-a228-304c081875aa)
+![image](https://github.com/user-attachments/assets/9e1d1964-7a27-409e-9797-75acddbb5771)
 
 ## What is NiceTOTP?
 Time-based one-time password (TOTP)
