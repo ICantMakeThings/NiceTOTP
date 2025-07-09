@@ -31,13 +31,13 @@
 using namespace Adafruit_LittleFS_Namespace;
 
 BLEUart bleuart;
+BLEDis bledis;
 
 RTC_DS3231 rtc;
 
 const uint8_t lockIcon8x8[] PROGMEM = {
-  0b00111100, 0b01100110, 0b01000010, 0b01111110,
-  0b01111110, 0b01111110, 0b01111110, 0b00111100
-};
+    0b00111100, 0b01100110, 0b01000010, 0b01111110,
+    0b01111110, 0b01111110, 0b01111110, 0b00111100};
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
@@ -53,8 +53,8 @@ const int MAX_PIN_LENGTH = 20;
 const int MAX_KEYS = 50;
 const int MAX_FAILED_ATTEMPTS = 10;
 
-const char* PIN_FILENAME = "/pin.dat";
-const char* KEYS_FILENAME = "/keys.dat";
+const char *PIN_FILENAME = "/pin.dat";
+const char *KEYS_FILENAME = "/keys.dat";
 
 bool pinError = false;
 unsigned long pinErrorTime = 0;
@@ -73,7 +73,8 @@ bool locked = true;
 bool pinSet = false;
 bool inPinSetup = false;
 
-struct KeyEntry {
+struct KeyEntry
+{
   char username[16];
   char base32secret[33];
 };
@@ -88,33 +89,37 @@ int selectedKeyIndex = 0;
 TOTP totp;
 
 /*  https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support/blob/main/Platformio%20Example%20code/Read%20Batt%20voltage/main.cpp  */
-float readBatteryVoltage() {
-  // The volatile keyword is a type qualifier in C/C++ that tells the compiler a variable's value might change in ways that the compiler cannot detect from the code alone. 
+float readBatteryVoltage()
+{
+  // The volatile keyword is a type qualifier in C/C++ that tells the compiler a variable's value might change in ways that the compiler cannot detect from the code alone.
   // Essentially, it says: "Don't optimize access to this variable because its value might change unexpectedly."
   volatile uint32_t raw_value = 0;
   // Configure SAADC
   NRF_SAADC->ENABLE = 1;
   NRF_SAADC->RESOLUTION = SAADC_RESOLUTION_VAL_12bit;
-  
-  NRF_SAADC->CH[0].CONFIG = 
-    (SAADC_CH_CONFIG_GAIN_Gain1_4 << SAADC_CH_CONFIG_GAIN_Pos) |
-    (SAADC_CH_CONFIG_MODE_SE << SAADC_CH_CONFIG_MODE_Pos) |
-    (SAADC_CH_CONFIG_REFSEL_Internal << SAADC_CH_CONFIG_REFSEL_Pos);
-  
+
+  NRF_SAADC->CH[0].CONFIG =
+      (SAADC_CH_CONFIG_GAIN_Gain1_4 << SAADC_CH_CONFIG_GAIN_Pos) |
+      (SAADC_CH_CONFIG_MODE_SE << SAADC_CH_CONFIG_MODE_Pos) |
+      (SAADC_CH_CONFIG_REFSEL_Internal << SAADC_CH_CONFIG_REFSEL_Pos);
+
   NRF_SAADC->CH[0].PSELP = SAADC_CH_PSELP_PSELP_VDDHDIV5;
   NRF_SAADC->CH[0].PSELN = SAADC_CH_PSELN_PSELN_NC;
-  
+
   // Sample
   NRF_SAADC->RESULT.PTR = (uint32_t)&raw_value;
   NRF_SAADC->RESULT.MAXCNT = 1;
   NRF_SAADC->TASKS_START = 1;
-  while (!NRF_SAADC->EVENTS_STARTED);
+  while (!NRF_SAADC->EVENTS_STARTED)
+    ;
   NRF_SAADC->EVENTS_STARTED = 0;
   NRF_SAADC->TASKS_SAMPLE = 1;
-  while (!NRF_SAADC->EVENTS_END);
+  while (!NRF_SAADC->EVENTS_END)
+    ;
   NRF_SAADC->EVENTS_END = 0;
   NRF_SAADC->TASKS_STOP = 1;
-  while (!NRF_SAADC->EVENTS_STOPPED);
+  while (!NRF_SAADC->EVENTS_STOPPED)
+    ;
   NRF_SAADC->EVENTS_STOPPED = 0;
   NRF_SAADC->ENABLE = 0;
 
@@ -128,53 +133,73 @@ float readBatteryVoltage() {
 }
 
 // Batt status
-void drawBatteryIcon(float voltage) {
+void drawBatteryIcon(float voltage)
+{
   const int iconX = SCREEN_WIDTH - 18;
   const int iconY = 0;
   const int iconWidth = 16;
   const int iconHeight = 6;
   const int terminalWidth = 2;
-  
+
   display.drawRect(iconX, iconY, iconWidth, iconHeight, SSD1306_WHITE);
   display.fillRect(iconX + iconWidth, iconY + 2, terminalWidth, iconHeight - 4, SSD1306_WHITE);
-  
+
   float minV = 3.0;
   float maxV = 4.2;
   int fillWidth = (int)((voltage - minV) / (maxV - minV) * (iconWidth - 4));
-  if (fillWidth < 0) fillWidth = 0;
-  if (fillWidth > iconWidth - 4) fillWidth = iconWidth - 4;
-  
-  if (fillWidth > 0) {
+  if (fillWidth < 0)
+    fillWidth = 0;
+  if (fillWidth > iconWidth - 4)
+    fillWidth = iconWidth - 4;
+
+  if (fillWidth > 0)
+  {
     display.fillRect(iconX + 2, iconY + 2, fillWidth, iconHeight - 4, SSD1306_WHITE);
   }
 }
 
-
 // Files
 
-void savePin() {
-  if (!InternalFS.begin()) return;
-  if (devicePinLength == 0) {
-    if (InternalFS.exists(PIN_FILENAME)) InternalFS.remove(PIN_FILENAME);
+void savePin()
+{
+  if (!InternalFS.begin())
+    return;
+  if (devicePinLength == 0)
+  {
+    if (InternalFS.exists(PIN_FILENAME))
+      InternalFS.remove(PIN_FILENAME);
     return;
   }
   File f = InternalFS.open(PIN_FILENAME, FILE_O_WRITE);
-  if (!f) return;
-  f.write((uint8_t*)&devicePinLength, 1);
-  f.write((uint8_t*)devicePin, devicePinLength);
+  if (!f)
+    return;
+  f.write((uint8_t *)&devicePinLength, 1);
+  f.write((uint8_t *)devicePin, devicePinLength);
   f.close();
 }
 
-bool loadPin() {
-  if (!InternalFS.begin()) return false;
-  if (!InternalFS.exists(PIN_FILENAME)) return false;
+bool loadPin()
+{
+  if (!InternalFS.begin())
+    return false;
+  if (!InternalFS.exists(PIN_FILENAME))
+    return false;
   File f = InternalFS.open(PIN_FILENAME, FILE_O_READ);
-  if (!f) return false;
-  if (f.size() < 1) { f.close(); return false; }
+  if (!f)
+    return false;
+  if (f.size() < 1)
+  {
+    f.close();
+    return false;
+  }
   uint8_t len;
   f.read(&len, 1);
-  if (len < 1 || len > MAX_PIN_LENGTH || f.size() != len + 1) { f.close(); return false; }
-  f.read((uint8_t*)devicePin, len);
+  if (len < 1 || len > MAX_PIN_LENGTH || f.size() != len + 1)
+  {
+    f.close();
+    return false;
+  }
+  f.read((uint8_t *)devicePin, len);
   devicePin[len] = '\0';
   devicePinLength = len;
   pinSet = true;
@@ -183,80 +208,132 @@ bool loadPin() {
 }
 
 void loadKeys() {
-  if (!InternalFS.begin()) return;
-  if (!InternalFS.exists(KEYS_FILENAME)) return;
-  File f = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
-  if (!f) return;
-  int fileSize = f.size();
-  if (fileSize % sizeof(KeyEntry) != 0) { f.close(); return; }
-  keysCount = fileSize / sizeof(KeyEntry);
-  if (keysCount > MAX_KEYS) keysCount = MAX_KEYS;
-  f.read((uint8_t*)keys, keysCount * sizeof(KeyEntry));
-  f.close();
-}
+  keysCount = 0;
+  memset(keys, 0, sizeof(keys));
 
-void saveKeys() {
-  if (!InternalFS.begin()) return;
-  if (keysCount == 0) {
-    if (InternalFS.exists(KEYS_FILENAME)) InternalFS.remove(KEYS_FILENAME);
+  if (!InternalFS.begin()) {
+    Serial.println("FS mount failed");
     return;
   }
-  File f = InternalFS.open(KEYS_FILENAME, FILE_O_WRITE);
-  if (!f) return;
-  f.write((uint8_t*)keys, keysCount * sizeof(KeyEntry));
-  f.close();
+
+  if (!InternalFS.exists(KEYS_FILENAME)) {
+    Serial.println("No keys file found");
+    return;
+  }
+
+  File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
+  if (!file) {
+    Serial.println("Failed to open keys file");
+    return;
+  }
+
+  while (file.available() && keysCount < MAX_KEYS) {
+    String line = file.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) continue;
+
+    int sepIndex = line.indexOf(' ');
+    if (sepIndex > 0) {
+      String username = line.substring(0, sepIndex);
+      String secret = line.substring(sepIndex + 1);
+      username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+      secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
+      keysCount++;
+    }
+  }
+
+  file.close();
+  Serial.printf("Loaded %d keys\n", keysCount);
 }
+
+
+void saveKeys() {
+  if (!InternalFS.begin()) {
+    Serial.println("FS mount failed");
+    return;
+  }
+
+  File file = InternalFS.open(KEYS_FILENAME, FILE_O_WRITE);
+  if (!file) {
+    Serial.println("Failed to open keys file for writing");
+    return;
+  }
+
+  for (int i = 0; i < keysCount; i++) {
+    file.printf("%s %s\n", keys[i].username, keys[i].base32secret);
+  }
+
+  file.flush();
+  file.close();
+
+  Serial.println("Keys saved");
+}
+
 
 // Display
 
-void displayCode() {
+void displayCode()
+{
   display.clearDisplay();
 
-  if (!pinSet) {
+  if (!pinSet)
+  {
     display.setFont(nullptr);
     display.setTextSize(1);
     display.setTextColor(SSD1306_WHITE);
     display.setCursor(0, 0);
     display.println("Set PIN:");
-    for (int i = 0; i < inputIndex; i++) display.print("*");
-
-  } else if (locked) {
+    for (int i = 0; i < inputIndex; i++)
+      display.print("*");
+  }
+  else if (locked)
+  {
     display.drawBitmap(0, 0, lockIcon8x8, 8, 8, SSD1306_WHITE);
     char masked[inputIndex + 1];
-    for (int i = 0; i < inputIndex; i++) masked[i] = '*';
+    for (int i = 0; i < inputIndex; i++)
+      masked[i] = '*';
     masked[inputIndex] = '\0';
 
     display.setFont(&FreeSansBold9pt7b);
-    int16_t x1, y1; uint16_t w, h;
+    int16_t x1, y1;
+    uint16_t w, h;
     display.getTextBounds(masked, 0, 0, &x1, &y1, &w, &h);
     int x = (SCREEN_WIDTH - w) / 2;
     int y = (SCREEN_HEIGHT + h) / 2 - 1;
     display.setCursor(x, y);
     display.setTextColor(SSD1306_WHITE);
     display.print(masked);
-
-  } else {
-    if (keysCount == 0) {
+  }
+  else
+  {
+    if (keysCount == 0)
+    {
       display.setFont(nullptr);
       display.setTextSize(1);
       display.setTextColor(SSD1306_WHITE);
       display.setCursor(0, 0);
       display.println("No keys saved");
-    } else {
+    }
+    else
+    {
       uint64_t now = rtc.now().unixtime();
       char *rawCode = totp.getCode(keys[selectedKeyIndex].base32secret, 30, now);
       char formattedCode[8] = "      ";
-      if (rawCode && strlen(rawCode) == 6) {
+      if (rawCode && strlen(rawCode) == 6)
+      {
         memcpy(formattedCode, rawCode, 3);
         formattedCode[3] = ' ';
         memcpy(&formattedCode[4], &rawCode[3], 3);
-      } else {
+      }
+      else
+      {
         strcpy(formattedCode, "------");
       }
 
       display.setFont(&FreeSansBold9pt7b);
       display.setTextColor(SSD1306_WHITE);
-      int16_t x1, y1; uint16_t w, h;
+      int16_t x1, y1;
+      uint16_t w, h;
       display.getTextBounds(formattedCode, 0, 0, &x1, &y1, &w, &h);
       int16_t x = (SCREEN_WIDTH - w) / 2;
       int16_t y = (SCREEN_HEIGHT + h) / 2 - 1;
@@ -268,9 +345,12 @@ void displayCode() {
       char displayUser[18];
       strncpy(displayUser, keys[selectedKeyIndex].username, 17);
       displayUser[17] = '\0';
-      uint16_t uw; int16_t ux, uy; uint16_t uh;
+      uint16_t uw;
+      int16_t ux, uy;
+      uint16_t uh;
       display.getTextBounds(displayUser, 0, 0, &ux, &uy, &uw, &uh);
-      if (uw > SCREEN_WIDTH) {
+      if (uw > SCREEN_WIDTH)
+      {
         strncpy(displayUser, keys[selectedKeyIndex].username, 13);
         strcpy(&displayUser[13], "...");
       }
@@ -290,7 +370,8 @@ void displayCode() {
   drawBatteryIcon(batteryVoltage);
 
   // Last 2 digits of unix time under battery icon (Only in TOTP code menu)
-  if (pinSet && !locked && keysCount > 0) {
+  if (pinSet && !locked && keysCount > 0)
+  {
     uint64_t now = rtc.now().unixtime();
     int lastTwoDigits = now % 100;
     char buf[3];
@@ -307,19 +388,25 @@ void displayCode() {
 
 // Buttons
 
-bool debounceButton(bool currentState, bool &pressedFlag, uint32_t &lastDebounceTime, uint32_t debounceDelay, uint32_t currentMillis) {
-  if (currentState && !pressedFlag && (currentMillis - lastDebounceTime > debounceDelay)) {
+bool debounceButton(bool currentState, bool &pressedFlag, uint32_t &lastDebounceTime, uint32_t debounceDelay, uint32_t currentMillis)
+{
+  if (currentState && !pressedFlag && (currentMillis - lastDebounceTime > debounceDelay))
+  {
     pressedFlag = true;
     lastDebounceTime = currentMillis;
     return true;
-  } else if (!currentState) {
+  }
+  else if (!currentState)
+  {
     pressedFlag = false;
   }
   return false;
 }
 
-void appendInput(char c) {
-  if (inputIndex < MAX_PIN_LENGTH) {
+void appendInput(char c)
+{
+  if (inputIndex < MAX_PIN_LENGTH)
+  {
     inputBuffer[inputIndex++] = c;
     inputBuffer[inputIndex] = '\0';
     lastPinInputTime = millis();
@@ -327,12 +414,14 @@ void appendInput(char c) {
   lastActivityTime = millis();
 }
 
-void resetInputBuffer() {
+void resetInputBuffer()
+{
   inputIndex = 0;
   memset(inputBuffer, 0, sizeof(inputBuffer));
 }
 
-void handleButtons() {
+void handleButtons()
+{
   static uint32_t lastDebounceTimeUp = 0;
   static uint32_t lastDebounceTimeDown = 0;
   const uint32_t debounceDelay = 50;
@@ -341,13 +430,15 @@ void handleButtons() {
   bool downState = digitalRead(BUTTON_DOWN_PIN) == LOW;
   uint32_t currentMillis = millis();
 
-  if (inPinSetup) {
+  if (inPinSetup)
+  {
     if (debounceButton(upState, buttonUpPressed, lastDebounceTimeUp, debounceDelay, currentMillis))
       appendInput('u');
     if (debounceButton(downState, buttonDownPressed, lastDebounceTimeDown, debounceDelay, currentMillis))
       appendInput('d');
 
-    if (inputIndex > 0 && (currentMillis - lastPinInputTime) > PIN_SETUP_TIMEOUT) {
+    if (inputIndex > 0 && (currentMillis - lastPinInputTime) > PIN_SETUP_TIMEOUT)
+    {
       strcpy(devicePin, inputBuffer);
       devicePinLength = inputIndex;
       pinSet = true;
@@ -356,20 +447,28 @@ void handleButtons() {
       inPinSetup = false;
       resetInputBuffer();
     }
-
-  } else if (locked) {
-    auto tryUnlock = [&](char c) {
-      if (inputIndex < devicePinLength) inputBuffer[inputIndex++] = c;
-      if (inputIndex == devicePinLength) {
+  }
+  else if (locked)
+  {
+    auto tryUnlock = [&](char c)
+    {
+      if (inputIndex < devicePinLength)
+        inputBuffer[inputIndex++] = c;
+      if (inputIndex == devicePinLength)
+      {
         inputBuffer[inputIndex] = '\0';
-        if (strncmp(inputBuffer, devicePin, devicePinLength) == 0) {
+        if (strncmp(inputBuffer, devicePin, devicePinLength) == 0)
+        {
           locked = false;
           failedAttempts = 0;
-        } else {
+        }
+        else
+        {
           pinError = true;
           pinErrorTime = currentMillis;
           failedAttempts++;
-          if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+          if (failedAttempts >= MAX_FAILED_ATTEMPTS)
+          {
             keysCount = 0;
             saveKeys();
             memset(devicePin, 0, sizeof(devicePin));
@@ -390,16 +489,21 @@ void handleButtons() {
       tryUnlock('u');
     if (debounceButton(downState, buttonDownPressed, lastDebounceTimeDown, debounceDelay, currentMillis))
       tryUnlock('d');
-
-  } else {
-    if (debounceButton(upState, buttonUpPressed, lastDebounceTimeUp, debounceDelay, currentMillis)) {
-      if (keysCount > 0) {
+  }
+  else
+  {
+    if (debounceButton(upState, buttonUpPressed, lastDebounceTimeUp, debounceDelay, currentMillis))
+    {
+      if (keysCount > 0)
+      {
         selectedKeyIndex = (selectedKeyIndex + keysCount - 1) % keysCount;
       }
       lastActivityTime = currentMillis;
     }
-    if (debounceButton(downState, buttonDownPressed, lastDebounceTimeDown, debounceDelay, currentMillis)) {
-      if (keysCount > 0) {
+    if (debounceButton(downState, buttonDownPressed, lastDebounceTimeDown, debounceDelay, currentMillis))
+    {
+      if (keysCount > 0)
+      {
         selectedKeyIndex = (selectedKeyIndex + 1) % keysCount;
       }
       lastActivityTime = currentMillis;
@@ -409,24 +513,35 @@ void handleButtons() {
 
 // Serial
 
-void processSerialInput() {
+void processSerialInput()
+{
   static String serialLine;
-  while (Serial.available()) {
+  while (Serial.available())
+  {
     char c = (char)Serial.read();
-    if (c == '\n' || c == '\r') {
-      if (serialLine.length() > 0) {
+    if (c == '\n' || c == '\r')
+    {
+      if (serialLine.length() > 0)
+      {
         serialLine.trim();
-        if (serialLine.startsWith("add ")) {
+        if (serialLine.startsWith("add "))
+        {
           String cmd = serialLine.substring(4);
           int spaceIndex = cmd.indexOf(' ');
-          if (spaceIndex > 0) {
+          if (spaceIndex > 0)
+          {
             String username = cmd.substring(0, spaceIndex);
             String secret = cmd.substring(spaceIndex + 1);
-            if (username.length() > 15 || secret.length() > 32) {
+            if (username.length() > 15 || secret.length() > 32)
+            {
               Serial.println("Error: username or secret too long");
-            } else if (keysCount >= MAX_KEYS) {
+            }
+            else if (keysCount >= MAX_KEYS)
+            {
               Serial.println("Max keys reached");
-            } else {
+            }
+            else
+            {
               username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
               secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
               keysCount++;
@@ -434,117 +549,161 @@ void processSerialInput() {
               Serial.print("Added key: ");
               Serial.println(username);
             }
-          } else {
+          }
+          else
+          {
             Serial.println("Invalid add command format");
           }
-        } else if (serialLine.startsWith("setunixtime ")) {
+        }
+        else if (serialLine.startsWith("setunixtime "))
+        {
           unsigned long epoch = serialLine.substring(11).toInt();
-          if (epoch == 0) {
+          if (epoch == 0)
+          {
             Serial.println("Invalid time");
-          } else {
+          }
+          else
+          {
             rtc.adjust(DateTime(epoch));
             Serial.println("Time set");
           }
-        } else if (serialLine == "factoryreset") {
-          if (InternalFS.begin()) {
-            if (InternalFS.exists(PIN_FILENAME)) InternalFS.remove(PIN_FILENAME);
-            if (InternalFS.exists(KEYS_FILENAME)) InternalFS.remove(KEYS_FILENAME);
+        }
+        else if (serialLine == "factoryreset")
+        {
+          if (InternalFS.begin())
+          {
+            if (InternalFS.exists(PIN_FILENAME))
+              InternalFS.remove(PIN_FILENAME);
+            if (InternalFS.exists(KEYS_FILENAME))
+              InternalFS.remove(KEYS_FILENAME);
             pinSet = false;
             locked = true;
             keysCount = 0;
             memset(devicePin, 0, sizeof(devicePin));
             memset(keys, 0, sizeof(keys));
-            Serial.println("Factory reset done, set new PIN");
-          } else {
+            Serial.println("Factory reset done, rebooting...");
+            delay(100);
+            NVIC_SystemReset();
+          }
+          else
+          {
             Serial.println("FS mount failed");
           }
-        } else if (serialLine.startsWith("del ")) {
+        }
+        else if (serialLine.startsWith("del "))
+        {
           int index = serialLine.substring(4).toInt();
-          if (index >= 0 && index < keysCount) {
+          if (index >= 0 && index < keysCount)
+          {
             Serial.printf("Deleting key %d: %s\n", index, keys[index].username);
-            for (int i = index; i < keysCount - 1; i++) keys[i] = keys[i + 1];
+            for (int i = index; i < keysCount - 1; i++)
+              keys[i] = keys[i + 1];
             keysCount--;
             saveKeys();
             Serial.println("Key deleted");
-          } else {
+          }
+          else
+          {
             Serial.println("Invalid key index");
           }
-        } else if (serialLine == "list") {
-          if (locked) {
+        }
+        else if (serialLine == "list")
+        {
+          if (locked)
+          {
             Serial.println("Device locked. Unlock first.");
-          } else {
+          }
+          else
+          {
             Serial.printf("Keys (%d):\n", keysCount);
-            for (int i = 0; i < keysCount; i++) {
+            for (int i = 0; i < keysCount; i++)
+            {
               Serial.printf("%d: %s\n", i, keys[i].username);
             }
           }
-        } else if (serialLine == "clear") {
+        }
+        else if (serialLine == "clear")
+        {
           keysCount = 0;
           saveKeys();
           Serial.println("Keys cleared");
-        } else if (serialLine == "pinsetup") {
+        }
+        else if (serialLine == "pinsetup")
+        {
           inPinSetup = true;
           resetInputBuffer();
           lastPinInputTime = millis();
           Serial.println("Enter new PIN by buttons (timeout 10s)");
-        } else if (serialLine == "lock") {
+        }
+        else if (serialLine == "lock")
+        {
           locked = true;
           Serial.println("Device locked");
-        } else {
+        }
+        else
+        {
           Serial.println("Unknown command");
         }
         serialLine = "";
       }
-    } else {
+    }
+    else
+    {
       serialLine += c;
     }
   }
 }
 
-void handleCommand(String line, bool fromBle) {
-  auto output = [&](const String &msg) {
-    if (fromBle) bleuart.println(msg);
-    else Serial.println(msg);
-  };
+void processBleInput()
+{
+  while (Serial.available())
+  {
+    char c = Serial.read();
+    bleuart.write(c);
+  }
 
-//TooDooo
-}
-
-void processBleInput() {
-  static String bleLine;
-  while (bleuart.available()) {
+  while (bleuart.available())
+  {
     char c = bleuart.read();
-    if (c == '\n' || c == '\r') {
-      if (bleLine.length() > 0) {
-        bleLine.trim();
-        handleCommand(bleLine, true);
-        bleLine = "";
-      }
-    } else {
-      bleLine += c;
-    }
+    Serial.write(c);
   }
 }
 
+void startAdv(void)
+{
+  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addService(bleuart);
+  Bluefruit.ScanResponse.addName();
+  Bluefruit.Advertising.restartOnDisconnect(true);
+  Bluefruit.Advertising.setInterval(32, 244);
+  Bluefruit.Advertising.setFastTimeout(30);
+  Bluefruit.Advertising.start(0);
+}
 
 // Sleep n' stuf
 
-void configureWakeupButtons() {
+void configureWakeupButtons()
+{
   nrf_gpio_cfg_sense_input(BUTTON_UP_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
   nrf_gpio_cfg_sense_input(BUTTON_DOWN_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
 }
 
-void enterUltraSleep() {
+void enterUltraSleep()
+{
   Serial.println("Entering ultra sleep...");
   display.ssd1306_command(SSD1306_DISPLAYOFF);
   display.clearDisplay();
   display.display();
   delay(100);
   NRF_POWER->SYSTEMOFF = 1;
-  while (true) {}
+  while (true)
+  {
+  }
 }
 
-void setup() {
+void setup()
+{
 
   pinMode(PIN_013, OUTPUT);
   digitalWrite(PIN_013, HIGH);
@@ -555,16 +714,22 @@ void setup() {
   pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
   pinMode(BUTTON_DOWN_PIN, INPUT_PULLUP);
 
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
+  {
     Serial.println("SSD1306 init failed");
-    while (1) {}
+    while (1)
+    {
+    }
   }
   display.clearDisplay();
   display.display();
 
-  if (!rtc.begin()) {
+  if (!rtc.begin())
+  {
     Serial.println("RTC init failed");
-    while (1) {}
+    while (1)
+    {
+    }
   }
 
   configureWakeupButtons();
@@ -572,33 +737,63 @@ void setup() {
   loadPin();
   loadKeys();
 
-  if (!pinSet) {
+  if (!pinSet)
+  {
     inPinSetup = true;
     resetInputBuffer();
     lastPinInputTime = millis();
   }
-/*
-  Bluefruit.begin();
-  bleuart.begin();
-  Bluefruit.setName("NiceTOTP");
-  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
-  Bluefruit.Advertising.addTxPower();
-  Bluefruit.Advertising.addService(bleuart);
-  Bluefruit.Advertising.start();
-*/
-
+  /*
+    Bluefruit.begin();
+    Bluefruit.setTxPower(4);
+    bledis.setManufacturer("ICantMakeThings");
+    bledis.setModel("NiceTOTP");
+    bledis.begin();
+    bleuart.begin();
+    Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+    Bluefruit.Advertising.addTxPower();
+    Bluefruit.Advertising.addService(bleuart);
+    Bluefruit.ScanResponse.addName();
+    Bluefruit.Advertising.restartOnDisconnect(true);
+    Bluefruit.Advertising.setInterval(32, 244);
+    Bluefruit.Advertising.setFastTimeout(30);
+    Bluefruit.Advertising.start(0);
+  */
   locked = pinSet;
   lastActivityTime = millis();
 }
 
-void loop() {
+void loop()
+{
   handleButtons();
   processSerialInput();
-  //processBleInput();
+
+  /*
+  // Took part from: https://github.com/adafruit/Adafruit_nRF52_Arduino/blob/master/libraries/Bluefruit52Lib/examples/Peripheral/bleuart/bleuart.ino
+  while (Serial.available())
+  {
+    // Delay to wait for enough input, since we have a limited transmission buffer
+    delay(2);
+
+    uint8_t buf[64];
+    int count = Serial.readBytes(buf, sizeof(buf));
+    bleuart.write(buf, count);
+  }
+
+  // Forward from BLEUART to HW Serial
+  while (bleuart.available())
+  {
+    uint8_t ch;
+    ch = (uint8_t)bleuart.read();
+    Serial.write(ch);
+  }
+*/
   displayCode();
 
-  if ((millis() - lastActivityTime) > INACTIVITY_TIMEOUT && !locked && !inPinSetup) {
+  if ((millis() - lastActivityTime) > INACTIVITY_TIMEOUT && !inPinSetup)
+  {
     enterUltraSleep();
   }
+
   delay(50);
 }
