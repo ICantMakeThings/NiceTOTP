@@ -22,10 +22,12 @@
 #include "TOTP++.h"
 #include <Fonts/FreeSansBold9pt7b.h>
 #include <nrf.h>
-#include <nrf_power.h>
 #include <nrf_gpio.h>
 #include <bluefruit.h>
-
+#include <Adafruit_TinyUSB.h>
+#include <hal/nrf_power.h>      // For NRF_POWER->GPREGRET
+#include "nrf_nvic.h"           // For NVIC_SystemReset()
+#define DFU_MAGIC_UF2_RESET  0x57
 // Constants
 
 using namespace Adafruit_LittleFS_Namespace;
@@ -601,6 +603,11 @@ void processSerialInput()
           {
             Serial.println("FS mount failed");
           }
+        }
+        else if (serialLine == "dfu")
+        {
+          NRF_POWER->GPREGRET = DFU_MAGIC_UF2_RESET;
+          NVIC_SystemReset();
         }
         else if (serialLine.startsWith("del "))
         {
