@@ -48,8 +48,8 @@ const uint8_t lockIcon8x8[] PROGMEM = {
 #define OLED_RESET -1
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
-#define BUTTON_UP_PIN PIN_031
-#define BUTTON_DOWN_PIN PIN_029
+#define BUTTON_UP_PIN PIN_029
+#define BUTTON_DOWN_PIN PIN_031
 
 const unsigned long INACTIVITY_TIMEOUT = 60000;
 const unsigned long PIN_SETUP_TIMEOUT = 10000;
