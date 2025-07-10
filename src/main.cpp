@@ -25,10 +25,12 @@
 #include <nrf_gpio.h>
 #include <bluefruit.h>
 #include <Adafruit_TinyUSB.h>
-#include <hal/nrf_power.h>      // For NRF_POWER->GPREGRET
-#include "nrf_nvic.h"           // For NVIC_SystemReset()
-#define DFU_MAGIC_UF2_RESET  0x57
+#include <hal/nrf_power.h> // For NRF_POWER->GPREGRET
+#include "nrf_nvic.h"      // For NVIC_SystemReset()
+
 // Constants
+
+#define DFU_MAGIC_UF2_RESET 0x57
 
 using namespace Adafruit_LittleFS_Namespace;
 
@@ -161,8 +163,10 @@ void drawBatteryIcon(float voltage)
   else
   {
     int fillWidth = (int)((voltage - minV) / (maxV - minV) * (iconWidth - 4));
-    if (fillWidth < 0) fillWidth = 0;
-    if (fillWidth > iconWidth - 4) fillWidth = iconWidth - 4;
+    if (fillWidth < 0)
+      fillWidth = 0;
+    if (fillWidth > iconWidth - 4)
+      fillWidth = iconWidth - 4;
 
     if (fillWidth > 0)
     {
@@ -170,7 +174,6 @@ void drawBatteryIcon(float voltage)
     }
   }
 }
-
 
 // Files
 
@@ -221,33 +224,40 @@ bool loadPin()
   return true;
 }
 
-void loadKeys() {
+void loadKeys()
+{
   keysCount = 0;
   memset(keys, 0, sizeof(keys));
 
-  if (!InternalFS.begin()) {
+  if (!InternalFS.begin())
+  {
     Serial.println("FS mount failed");
     return;
   }
 
-  if (!InternalFS.exists(KEYS_FILENAME)) {
+  if (!InternalFS.exists(KEYS_FILENAME))
+  {
     Serial.println("No keys file found");
     return;
   }
 
   File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
-  if (!file) {
+  if (!file)
+  {
     Serial.println("Failed to open keys file");
     return;
   }
 
-  while (file.available() && keysCount < MAX_KEYS) {
+  while (file.available() && keysCount < MAX_KEYS)
+  {
     String line = file.readStringUntil('\n');
     line.trim();
-    if (line.length() == 0) continue;
+    if (line.length() == 0)
+      continue;
 
     int sepIndex = line.indexOf(' ');
-    if (sepIndex > 0) {
+    if (sepIndex > 0)
+    {
       String username = line.substring(0, sepIndex);
       String secret = line.substring(sepIndex + 1);
       username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
@@ -260,20 +270,28 @@ void loadKeys() {
   Serial.printf("Loaded %d keys\n", keysCount);
 }
 
-
-void saveKeys() {
-  if (!InternalFS.begin()) {
+void saveKeys()
+{
+  if (!InternalFS.begin())
+  {
     Serial.println("FS mount failed");
     return;
   }
 
+  if (InternalFS.exists(KEYS_FILENAME))
+  {
+    InternalFS.remove(KEYS_FILENAME);
+  }
+
   File file = InternalFS.open(KEYS_FILENAME, FILE_O_WRITE);
-  if (!file) {
+  if (!file)
+  {
     Serial.println("Failed to open keys file for writing");
     return;
   }
 
-  for (int i = 0; i < keysCount; i++) {
+  for (int i = 0; i < keysCount; i++)
+  {
     file.printf("%s %s\n", keys[i].username, keys[i].base32secret);
   }
 
@@ -283,6 +301,18 @@ void saveKeys() {
   Serial.println("Keys saved");
 }
 
+
+bool isDuplicateKey(const char *username, const char *secret)
+{
+  for (int i = 0; i < keysCount; i++)
+  {
+    if (strcmp(keys[i].username, username) == 0 && strcmp(keys[i].base32secret, secret) == 0)
+    {
+      return true;
+    }
+  }
+  return false;
+}
 
 // Display
 
@@ -546,6 +576,8 @@ void processSerialInput()
           {
             String username = cmd.substring(0, spaceIndex);
             String secret = cmd.substring(spaceIndex + 1);
+            username.trim();
+            secret.trim();
             if (username.length() > 15 || secret.length() > 32)
             {
               Serial.println("Error: username or secret too long");
@@ -556,30 +588,24 @@ void processSerialInput()
             }
             else
             {
-              username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
-              secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
-              keysCount++;
-              saveKeys();
-              Serial.print("Added key: ");
-              Serial.println(username);
+              if (isDuplicateKey(username.c_str(), secret.c_str()))
+              {
+                Serial.println("Duplicate key, not added.");
+              }
+              else
+              {
+                username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+                secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
+                keysCount++;
+                saveKeys();
+                Serial.print("Added key: ");
+                Serial.println(username);
+              }
             }
           }
           else
           {
             Serial.println("Invalid add command format");
-          }
-        }
-        else if (serialLine.startsWith("setunixtime "))
-        {
-          unsigned long epoch = serialLine.substring(11).toInt();
-          if (epoch == 0)
-          {
-            Serial.println("Invalid time");
-          }
-          else
-          {
-            rtc.adjust(DateTime(epoch));
-            Serial.println("Time set");
           }
         }
         else if (serialLine == "factoryreset")
@@ -690,20 +716,20 @@ void processBleInput()
 
 void BLE(void)
 {
-    Bluefruit.begin();
-    Bluefruit.setTxPower(4);
-    bledis.setManufacturer("ICantMakeThings");
-    bledis.setModel("NiceTOTP");
-    bledis.begin();
-    bleuart.begin();
-    Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
-    Bluefruit.Advertising.addTxPower();
-    Bluefruit.Advertising.addService(bleuart);
-    Bluefruit.ScanResponse.addName();
-    Bluefruit.Advertising.restartOnDisconnect(true);
-    Bluefruit.Advertising.setInterval(32, 244);
-    Bluefruit.Advertising.setFastTimeout(30);
-    Bluefruit.Advertising.start(0);
+  Bluefruit.begin();
+  Bluefruit.setTxPower(4);
+  bledis.setManufacturer("ICantMakeThings");
+  bledis.setModel("NiceTOTP");
+  bledis.begin();
+  bleuart.begin();
+  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+  Bluefruit.Advertising.addTxPower();
+  Bluefruit.Advertising.addService(bleuart);
+  Bluefruit.ScanResponse.addName();
+  Bluefruit.Advertising.restartOnDisconnect(true);
+  Bluefruit.Advertising.setInterval(32, 244);
+  Bluefruit.Advertising.setFastTimeout(30);
+  Bluefruit.Advertising.start(0);
 }
 
 // Sleep n' stuf
@@ -714,10 +740,19 @@ void configureWakeupButtons()
   nrf_gpio_cfg_sense_input(BUTTON_DOWN_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
 }
 
+void fadeOutDisplay() {
+  for (int contrast = 200; contrast >= 0; contrast -= 15) {
+    display.ssd1306_command(SSD1306_SETCONTRAST);
+    display.ssd1306_command(contrast);
+    delay(60);
+  }
+  display.ssd1306_command(SSD1306_DISPLAYOFF);
+}
+
 void enterUltraSleep()
 {
   Serial.println("Entering ultra sleep...");
-  display.ssd1306_command(SSD1306_DISPLAYOFF);
+  fadeOutDisplay();
   display.clearDisplay();
   display.display();
   delay(100);
@@ -742,19 +777,14 @@ void setup()
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   {
     Serial.println("SSD1306 init failed");
-    while (1)
-    {
-    }
+    while (1) {}
   }
-  display.clearDisplay();
   display.display();
 
   if (!rtc.begin())
   {
     Serial.println("RTC init failed");
-    while (1)
-    {
-    }
+    while (1) {}
   }
 
   configureWakeupButtons();
@@ -769,7 +799,7 @@ void setup()
     lastPinInputTime = millis();
   }
 
-  //BLE();
+  // BLE();
 
   locked = pinSet;
   lastActivityTime = millis();
