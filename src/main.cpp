@@ -133,6 +133,7 @@ float readBatteryVoltage()
 }
 
 // Batt status
+
 void drawBatteryIcon(float voltage)
 {
   const int iconX = SCREEN_WIDTH - 18;
@@ -146,17 +147,28 @@ void drawBatteryIcon(float voltage)
 
   float minV = 3.0;
   float maxV = 4.2;
-  int fillWidth = (int)((voltage - minV) / (maxV - minV) * (iconWidth - 4));
-  if (fillWidth < 0)
-    fillWidth = 0;
-  if (fillWidth > iconWidth - 4)
-    fillWidth = iconWidth - 4;
+  bool isCharging = (voltage >= 4.3);
 
-  if (fillWidth > 0)
+  if (isCharging)
   {
-    display.fillRect(iconX + 2, iconY + 2, fillWidth, iconHeight - 4, SSD1306_WHITE);
+    const int fillMax = iconWidth - 4;
+    int animPhase = (millis() / 150) % (fillMax + 1);
+
+    display.fillRect(iconX + 2, iconY + 2, animPhase, iconHeight - 4, SSD1306_WHITE);
+  }
+  else
+  {
+    int fillWidth = (int)((voltage - minV) / (maxV - minV) * (iconWidth - 4));
+    if (fillWidth < 0) fillWidth = 0;
+    if (fillWidth > iconWidth - 4) fillWidth = iconWidth - 4;
+
+    if (fillWidth > 0)
+    {
+      display.fillRect(iconX + 2, iconY + 2, fillWidth, iconHeight - 4, SSD1306_WHITE);
+    }
   }
 }
+
 
 // Files
 
@@ -669,16 +681,22 @@ void processBleInput()
   }
 }
 
-void startAdv(void)
+void BLE(void)
 {
-  Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
-  Bluefruit.Advertising.addTxPower();
-  Bluefruit.Advertising.addService(bleuart);
-  Bluefruit.ScanResponse.addName();
-  Bluefruit.Advertising.restartOnDisconnect(true);
-  Bluefruit.Advertising.setInterval(32, 244);
-  Bluefruit.Advertising.setFastTimeout(30);
-  Bluefruit.Advertising.start(0);
+    Bluefruit.begin();
+    Bluefruit.setTxPower(4);
+    bledis.setManufacturer("ICantMakeThings");
+    bledis.setModel("NiceTOTP");
+    bledis.begin();
+    bleuart.begin();
+    Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
+    Bluefruit.Advertising.addTxPower();
+    Bluefruit.Advertising.addService(bleuart);
+    Bluefruit.ScanResponse.addName();
+    Bluefruit.Advertising.restartOnDisconnect(true);
+    Bluefruit.Advertising.setInterval(32, 244);
+    Bluefruit.Advertising.setFastTimeout(30);
+    Bluefruit.Advertising.start(0);
 }
 
 // Sleep n' stuf
@@ -743,22 +761,9 @@ void setup()
     resetInputBuffer();
     lastPinInputTime = millis();
   }
-  /*
-    Bluefruit.begin();
-    Bluefruit.setTxPower(4);
-    bledis.setManufacturer("ICantMakeThings");
-    bledis.setModel("NiceTOTP");
-    bledis.begin();
-    bleuart.begin();
-    Bluefruit.Advertising.addFlags(BLE_GAP_ADV_FLAGS_LE_ONLY_GENERAL_DISC_MODE);
-    Bluefruit.Advertising.addTxPower();
-    Bluefruit.Advertising.addService(bleuart);
-    Bluefruit.ScanResponse.addName();
-    Bluefruit.Advertising.restartOnDisconnect(true);
-    Bluefruit.Advertising.setInterval(32, 244);
-    Bluefruit.Advertising.setFastTimeout(30);
-    Bluefruit.Advertising.start(0);
-  */
+
+  //BLE();
+
   locked = pinSet;
   lastActivityTime = millis();
 }
