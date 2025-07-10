@@ -301,7 +301,6 @@ void saveKeys()
   Serial.println("Keys saved");
 }
 
-
 bool isDuplicateKey(const char *username, const char *secret)
 {
   for (int i = 0; i < keysCount; i++)
@@ -652,6 +651,23 @@ void processSerialInput()
             Serial.println("Invalid key index");
           }
         }
+        else if (serialLine.startsWith("setunixtime "))
+        {
+          String timeStr = serialLine.substring(strlen("setunixtime "));
+          timeStr.trim();
+          unsigned long unixTime = timeStr.toInt();
+          if (unixTime > 0)
+          {
+            rtc.adjust(DateTime(unixTime));
+            Serial.print("RTC time set to Unix time: ");
+            Serial.println(unixTime);
+          }
+          else
+          {
+            Serial.println("Invalid Unix time");
+          }
+        }
+
         else if (serialLine == "list")
         {
           if (locked)
@@ -740,8 +756,10 @@ void configureWakeupButtons()
   nrf_gpio_cfg_sense_input(BUTTON_DOWN_PIN, NRF_GPIO_PIN_PULLUP, NRF_GPIO_PIN_SENSE_LOW);
 }
 
-void fadeOutDisplay() {
-  for (int contrast = 200; contrast >= 0; contrast -= 15) {
+void fadeOutDisplay()
+{
+  for (int contrast = 200; contrast >= 0; contrast -= 15)
+  {
     display.ssd1306_command(SSD1306_SETCONTRAST);
     display.ssd1306_command(contrast);
     delay(60);
@@ -777,14 +795,18 @@ void setup()
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C))
   {
     Serial.println("SSD1306 init failed");
-    while (1) {}
+    while (1)
+    {
+    }
   }
   display.display();
 
   if (!rtc.begin())
   {
     Serial.println("RTC init failed");
-    while (1) {}
+    while (1)
+    {
+    }
   }
 
   configureWakeupButtons();
