@@ -2,7 +2,8 @@
 
 Verry niceeee ;>
 
-![image](https://github.com/user-attachments/assets/9e1d1964-7a27-409e-9797-75acddbb5771)
+<img width="200" height="300" alt="ew" src="https://github.com/user-attachments/assets/44ae206d-7d15-4607-9325-636519ae4e47" />
+
 
 ## What is NiceTOTP?
 
@@ -12,7 +13,9 @@ A alternetive to [Authy](https://www.authy.com/) / [Google Authenticator](https:
 
 Full offline. And Standalone once all Keys have been added.
 
-I *mighttt* make a app to simply configure it.
+Battery life for now seems like itll last, sleep mode after 1 minuite.
+
+press a button or plug it in to charge to wake it
 
 ## Hardware is:
 + Nice!Nano: [AliExpress Link](https://s.click.aliexpress.com/e/_omlmCuu)
@@ -33,8 +36,8 @@ Commands:
 - `list`
 - `del <GetTheIDFromListCommand>` example: `del 1`
 - `factoryreset` (Power cycle after)
-- `lock`
 More.
+Or: NiceTOTP-Configurator! (Firmware update doesnt work rn*)
 
 # Installation
 + Build and flash the project with platformio (Make sure you add nicenano support [here](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support))
