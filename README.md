@@ -14,7 +14,7 @@ A alternetive to [Authy](https://www.authy.com/) / [Google Authenticator](https:
 
 Full offline. And Standalone once all Keys have been added.
 
-Battery life for now seems like itll last, sleep mode after 1 minuite.
+Sleep mode after 1 minuite. battery life info at the bottom
 
 press a button or plug it in to charge to wake it
 
