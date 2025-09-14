@@ -52,6 +52,7 @@ Or: NiceTOTP-Configurator! (Firmware update doesnt work rn*)
 
 # More Info / 1 Month Review
 Using it for one month, The battery has been used up ~20% (750mAh supposedly)
+2 month update, it still only has been used up 20%.. so ye
 
 The RTC drifted a whoping 8 seconds in that month, I mean what?!
 
