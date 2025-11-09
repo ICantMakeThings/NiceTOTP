@@ -12,6 +12,7 @@
 // clear
 // pinsetup (im traumatised from this, i need to fix it or remove it)
 // lock
+// NEW << A app to configure 
 #include <Arduino.h>
 #include <Wire.h>
 #include <RTClib.h>
@@ -25,8 +26,8 @@
 #include <nrf_gpio.h>
 #include <bluefruit.h>
 #include <Adafruit_TinyUSB.h>
-#include <hal/nrf_power.h> // For NRF_POWER->GPREGRET
-#include "nrf_nvic.h"      // For NVIC_SystemReset()
+#include <hal/nrf_power.h>
+#include "nrf_nvic.h"
 
 // Constants
 
@@ -79,8 +80,8 @@ bool inPinSetup = false;
 
 struct KeyEntry
 {
-  char username[16];
-  char base32secret[33];
+    char username[32];
+    char base32secret[128];
 };
 
 KeyEntry keys[MAX_KEYS];
@@ -226,49 +227,69 @@ bool loadPin()
 
 void loadKeys()
 {
-  keysCount = 0;
-  memset(keys, 0, sizeof(keys));
+    keysCount = 0;
+    memset(keys, 0, sizeof(keys));
 
-  if (!InternalFS.begin())
-  {
-    Serial.println("FS mount failed");
-    return;
-  }
-
-  if (!InternalFS.exists(KEYS_FILENAME))
-  {
-    Serial.println("No keys file found");
-    return;
-  }
-
-  File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
-  if (!file)
-  {
-    Serial.println("Failed to open keys file");
-    return;
-  }
-
-  while (file.available() && keysCount < MAX_KEYS)
-  {
-    String line = file.readStringUntil('\n');
-    line.trim();
-    if (line.length() == 0)
-      continue;
-
-    int sepIndex = line.indexOf(' ');
-    if (sepIndex > 0)
+    if (!InternalFS.begin())
     {
-      String username = line.substring(0, sepIndex);
-      String secret = line.substring(sepIndex + 1);
-      username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
-      secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
-      keysCount++;
+        Serial.println("FS mount failed");
+        return;
     }
-  }
 
-  file.close();
-  Serial.printf("Loaded %d keys\n", keysCount);
+    if (!InternalFS.exists(KEYS_FILENAME))
+    {
+        Serial.println("No keys file found");
+        return;
+    }
+
+    File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
+    if (!file)
+    {
+        Serial.println("Failed to open keys file");
+        return;
+    }
+
+    while (file.available() && keysCount < MAX_KEYS)
+    {
+        String line = file.readStringUntil('\n');
+        line.trim();
+        if (line.length() == 0)
+            continue;
+
+        int sepIndex = line.indexOf(' ');
+        if (sepIndex > 0)
+        {
+            String username = line.substring(0, sepIndex);
+            String secret   = line.substring(sepIndex + 1);
+
+            secret.replace(" ", "");
+
+            if (username.length() >= sizeof(keys[keysCount].username))
+            {
+                Serial.println("Username too long, skipping");
+                continue;
+            }
+            if (secret.length() >= sizeof(keys[keysCount].base32secret))
+            {
+                Serial.println("Secret too long, skipping");
+                continue;
+            }
+
+            username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+            secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
+            keysCount++;
+        }
+        else
+        {
+            Serial.println("Malformed line in keys file, skipping");
+        }
+    }
+
+    file.close();
+    Serial.printf("Loaded %d keys\n", keysCount);
 }
+
+
 
 void saveKeys()
 {
@@ -567,6 +588,14 @@ void processSerialInput()
       if (serialLine.length() > 0)
       {
         serialLine.trim();
+
+        if (locked)
+        {
+          Serial.println("Device is locked. Unlock first.");
+          serialLine = "";
+          continue;
+        }
+
         if (serialLine.startsWith("add "))
         {
           String cmd = serialLine.substring(4);
@@ -577,7 +606,10 @@ void processSerialInput()
             String secret = cmd.substring(spaceIndex + 1);
             username.trim();
             secret.trim();
-            if (username.length() > 15 || secret.length() > 32)
+            secret.replace(" ", "");
+            secret.toUpperCase();
+
+            if (username.length() > 31 || secret.length() > 127)
             {
               Serial.println("Error: username or secret too long");
             }
@@ -585,21 +617,18 @@ void processSerialInput()
             {
               Serial.println("Max keys reached");
             }
+            else if (isDuplicateKey(username.c_str(), secret.c_str()))
+            {
+              Serial.println("Duplicate key, not added.");
+            }
             else
             {
-              if (isDuplicateKey(username.c_str(), secret.c_str()))
-              {
-                Serial.println("Duplicate key, not added.");
-              }
-              else
-              {
-                username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
-                secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
-                keysCount++;
-                saveKeys();
-                Serial.print("Added key: ");
-                Serial.println(username);
-              }
+              username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+              secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
+              keysCount++;
+              saveKeys();
+              Serial.print("Added key: ");
+              Serial.println(username);
             }
           }
           else
@@ -607,6 +636,72 @@ void processSerialInput()
             Serial.println("Invalid add command format");
           }
         }
+
+        else if (serialLine.startsWith("del "))
+        {
+          int index = serialLine.substring(4).toInt();
+          if (index >= 0 && index < keysCount)
+          {
+            Serial.printf("Deleting key %d: %s\n", index, keys[index].username);
+            for (int i = index; i < keysCount - 1; i++)
+              keys[i] = keys[i + 1];
+            keysCount--;
+            saveKeys();
+            Serial.println("Key deleted");
+          }
+          else
+          {
+            Serial.println("Invalid key index");
+          }
+        }
+
+        else if (serialLine.startsWith("setunixtime "))
+        {
+          String timeStr = serialLine.substring(strlen("setunixtime "));
+          timeStr.trim();
+          unsigned long unixTime = timeStr.toInt();
+          if (unixTime > 0)
+          {
+            rtc.adjust(DateTime(unixTime));
+            Serial.print("RTC time set to Unix time: ");
+            Serial.println(unixTime);
+          }
+          else
+          {
+            Serial.println("Invalid Unix time");
+          }
+        }
+
+        else if (serialLine == "list")
+        {
+          Serial.printf("Keys (%d):\n", keysCount);
+          for (int i = 0; i < keysCount; i++)
+          {
+            Serial.printf("%d: %s\n", i, keys[i].username);
+          }
+        }
+
+        else if (serialLine == "clear")
+        {
+          keysCount = 0;
+          saveKeys();
+          Serial.println("Keys cleared");
+        }
+
+        else if (serialLine == "pinsetup")
+        {
+          inPinSetup = true;
+          resetInputBuffer();
+          lastPinInputTime = millis();
+          Serial.println("Enter new PIN by buttons (timeout 10s)");
+        }
+
+        else if (serialLine == "lock")
+        {
+          locked = true;
+          Serial.println("Device locked");
+        }
+
         else if (serialLine == "factoryreset")
         {
           if (InternalFS.begin())
@@ -629,82 +724,19 @@ void processSerialInput()
             Serial.println("FS mount failed");
           }
         }
+
+        // DONT USE. i mean u can but youll need to press rst which is annoying if u alr have the case on
         else if (serialLine == "dfu")
         {
           NRF_POWER->GPREGRET = DFU_MAGIC_UF2_RESET;
           NVIC_SystemReset();
         }
-        else if (serialLine.startsWith("del "))
-        {
-          int index = serialLine.substring(4).toInt();
-          if (index >= 0 && index < keysCount)
-          {
-            Serial.printf("Deleting key %d: %s\n", index, keys[index].username);
-            for (int i = index; i < keysCount - 1; i++)
-              keys[i] = keys[i + 1];
-            keysCount--;
-            saveKeys();
-            Serial.println("Key deleted");
-          }
-          else
-          {
-            Serial.println("Invalid key index");
-          }
-        }
-        else if (serialLine.startsWith("setunixtime "))
-        {
-          String timeStr = serialLine.substring(strlen("setunixtime "));
-          timeStr.trim();
-          unsigned long unixTime = timeStr.toInt();
-          if (unixTime > 0)
-          {
-            rtc.adjust(DateTime(unixTime));
-            Serial.print("RTC time set to Unix time: ");
-            Serial.println(unixTime);
-          }
-          else
-          {
-            Serial.println("Invalid Unix time");
-          }
-        }
 
-        else if (serialLine == "list")
-        {
-          if (locked)
-          {
-            Serial.println("Device locked. Unlock first.");
-          }
-          else
-          {
-            Serial.printf("Keys (%d):\n", keysCount);
-            for (int i = 0; i < keysCount; i++)
-            {
-              Serial.printf("%d: %s\n", i, keys[i].username);
-            }
-          }
-        }
-        else if (serialLine == "clear")
-        {
-          keysCount = 0;
-          saveKeys();
-          Serial.println("Keys cleared");
-        }
-        else if (serialLine == "pinsetup")
-        {
-          inPinSetup = true;
-          resetInputBuffer();
-          lastPinInputTime = millis();
-          Serial.println("Enter new PIN by buttons (timeout 10s)");
-        }
-        else if (serialLine == "lock")
-        {
-          locked = true;
-          Serial.println("Device locked");
-        }
         else
         {
           Serial.println("Unknown command");
         }
+
         serialLine = "";
       }
     }
@@ -821,7 +853,7 @@ void setup()
     lastPinInputTime = millis();
   }
 
-  // BLE();
+  // BLE(); // This is for serial over BLE, I dont remember if it works but i dont need it.
 
   locked = pinSet;
   lastActivityTime = millis();
