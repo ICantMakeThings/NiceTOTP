@@ -57,11 +57,14 @@ Or: NiceTOTP-Configurator! (Firmware update doesnt work rn*)
 Using it for one month, The battery has been used up ~20% (750mAh supposedly)
 2 month update, it still only has been used up 20%.. so ye
 
+
 The RTC drifted a whoping 8 seconds in that month, I mean what?!
 
 It still shows the right code tho, but that means the last 8 Seconds are invalid. I will need to see whats up with the RTC
 
 Or Find a better one.
+
+**4 month** update, still 20%.. my guy is going strong without charging!
 
 ###### More info on my [Site](https://icmt.cc/p/nicetotp/)
 
