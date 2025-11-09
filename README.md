@@ -34,6 +34,9 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 *Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
 
 ![image](https://github.com/user-attachments/assets/e60bd7d0-8f01-4dfb-97a4-499b21477dde)
+![image](https://raw.githubusercontent.com/ICantMakeThings/NiceTOTP/refs/heads/main/d36.png)
+
+
 
 
 # Usage
