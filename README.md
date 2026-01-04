@@ -22,6 +22,8 @@ press a button or plug it in to charge to wake it
 
 [Video here](https://www.youtube.com/watch?v=sLiadPXk7rc)
 
+**NEW!** Import via scanning the QR code on google auth app. all that and more with the python app in the repo.
+
 ## But Why?? 
 
 There are a few reasons why I made this device, mainly to lose dependence of my phone. But not just, What if your phone breaks, bricks, or something else? I rather have lots of devices that don't depend on eachother rather than a all in one for that reason, plus most "universal" stuff performs worse than a specific device for that single function. As of right now, I'd say it's almost complete (enough to daily drive), possibly a few more hardware security features, maybe UI polishing, fixing any bugs i haven't found yet and should be perfect. The cost is ~£6 excluding 3D printing.
@@ -67,6 +69,10 @@ It still shows the right code tho, but that means the last 8 Seconds are invalid
 Or Find a better one.
 
 **4 month** update, still 20%.. my guy is going strong without charging!
+
+at **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
+
+make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)
 
 ###### More info on my [Site](https://icmt.cc/p/nicetotp/)
 
