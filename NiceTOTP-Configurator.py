@@ -14,6 +14,14 @@ import platform
 import tempfile
 from tkinter import filedialog
 import tkinter as tk
+import migration_payload_pb2
+import cv2
+from pyzbar.pyzbar import decode
+import base64
+import urllib.parse
+import hmac
+import hashlib
+import struct
 
 # Set theme
 ctk.set_appearance_mode("dark")
@@ -78,6 +86,187 @@ class ToolTip:
         if tw:
             tw.destroy()
 
+
+def scan_google_qr_camera():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        raise RuntimeError("Could not open camera")
+
+    append_text("Camera opened. Show Google Authenticator QR Code.\n")
+
+    qr_data = None
+
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            continue
+
+        decoded = decode(frame)
+        for d in decoded:
+            qr_data = d.data.decode()
+            break
+
+        cv2.imshow("Scan Google Authenticator QR Code (press Q to cancel)", frame)
+
+        if qr_data:
+            break
+
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+    if not qr_data:
+        raise RuntimeError("No QR code scanned")
+
+    if not qr_data.startswith("otpauth-migration://"):
+        raise RuntimeError("Not a Google Authenticator export QR")
+
+    return qr_data
+
+def decode_google_migration_url(url):
+    parsed = urllib.parse.urlparse(url)
+    params = urllib.parse.parse_qs(parsed.query)
+
+    data_b64 = params.get("data", [None])[0]
+    if not data_b64:
+        raise ValueError("No data parameter")
+
+    payload_bytes = base64.b64decode(data_b64)
+
+    payload = migration_payload_pb2.MigrationPayload()
+    payload.ParseFromString(payload_bytes)
+
+    accounts = []
+
+    for otp in payload.otp_parameters:
+        if otp.type != migration_payload_pb2.MigrationPayload.OTP_TOTP:
+            continue
+
+        secret_b32 = base64.b32encode(otp.secret).decode().replace("=", "")
+
+        accounts.append({
+            "issuer": otp.issuer or "",
+            "name": otp.name or "",
+            "secret": secret_b32,
+            "digits": otp.digits
+        })
+
+    return accounts
+
+def generate_totp(secret_b32, interval=30, digits=6):
+    try:
+        missing_padding = len(secret_b32) % 8
+        if missing_padding:
+            secret_b32 += "=" * (8 - missing_padding)
+
+        key = base64.b32decode(secret_b32.upper(), casefold=True)
+    except Exception:
+        return "------"
+
+    counter = int(time.time()) // interval
+    msg = struct.pack(">Q", counter)
+
+    h = hmac.new(key, msg, hashlib.sha1).digest()
+    o = h[-1] & 0x0F
+    code = (struct.unpack(">I", h[o:o+4])[0] & 0x7fffffff) % (10 ** digits)
+
+    return str(code).zfill(digits)
+
+
+# Account Import UI
+def confirm_and_import(accounts):
+    win = ctk.CTkToplevel(app)
+    win.title("Confirm Google Authenticator Import")
+    win.geometry("950x450")
+    win.grab_set()
+
+    canvas = tk.Canvas(win)
+    scroll = ctk.CTkScrollbar(win, orientation="vertical", command=canvas.yview)
+    frame = ctk.CTkFrame(canvas)
+
+    canvas.configure(yscrollcommand=scroll.set)
+    canvas.pack(side="left", fill="both", expand=True)
+    scroll.pack(side="right", fill="y")
+    canvas.create_window((0, 0), window=frame, anchor="nw")
+
+    headers = ["", "Issuer", "Account", "Secret", "Code", "Show", "Copy"]
+    for col, h in enumerate(headers):
+        ctk.CTkLabel(frame, text=h, font=("Arial", 10, "bold")).grid(row=0, column=col, padx=5, pady=3)
+
+    rows = []
+
+    for i, acc in enumerate(accounts, start=1):
+        enabled = tk.BooleanVar(value=True)
+
+        issuer = ctk.CTkEntry(frame, width=150)
+        name = ctk.CTkEntry(frame, width=150)
+        secret_entry = ctk.CTkEntry(frame, width=220, show="*")
+        code_label = ctk.CTkLabel(frame, width=80, font=("Courier", 16))
+
+        issuer.insert(0, acc["issuer"])
+        name.insert(0, acc["name"])
+        secret_entry.insert(0, acc["secret"])
+
+        ctk.CTkCheckBox(frame, text="", variable=enabled).grid(row=i, column=0)
+        issuer.grid(row=i, column=1, padx=5, pady=3)
+        name.grid(row=i, column=2, padx=5, pady=3)
+        secret_entry.grid(row=i, column=3, padx=5, pady=3)
+        code_label.grid(row=i, column=4, padx=5, pady=3)
+
+        def toggle_secret(e=secret_entry):
+            if e.cget("show") == "":
+                e.configure(show="*")
+            else:
+                e.configure(show="")
+        eye_btn = ctk.CTkButton(frame, text="👁", width=25, command=toggle_secret)
+        eye_btn.grid(row=i, column=5, padx=5)
+
+        def copy_code(c_label=code_label):
+            app.clipboard_clear()
+            app.clipboard_append(c_label.cget("text"))
+            append_text(f"Copied code {c_label.cget('text')} to clipboard.\n")
+        copy_btn = ctk.CTkButton(frame, text="📋", width=25, command=copy_code)
+        copy_btn.grid(row=i, column=6, padx=5)
+
+        rows.append((enabled, issuer, name, secret_entry, code_label))
+
+    def update_codes():
+        for _, _, _, secret_entry, code_label in rows:
+            secret = secret_entry.get().strip()
+            if secret:
+                code_label.configure(text=generate_totp(secret))
+            else:
+                code_label.configure(text="------")
+        if win.winfo_exists():
+            win.after(1000, update_codes)
+
+    update_codes()
+
+    def do_import():
+        import_data = []
+        for enabled, issuer, name, secret_entry, _ in rows:
+            if not enabled.get():
+                continue
+            user = issuer.get().strip() or name.get().strip()
+            if issuer.get().strip() and name.get().strip():
+                user = f"{issuer.get().strip()}:{name.get().strip()}"
+            secret = secret_entry.get().strip()
+            if user and secret:
+                import_data.append((user, secret))
+        win.destroy()
+
+        def worker():
+            for user, secret in import_data:
+                send_command(f"add {user} {secret}")
+                time.sleep(0.5)
+            append_text("Google Authenticator import complete.\n")
+        threading.Thread(target=worker, daemon=True).start()
+
+    ctk.CTkButton(win, text="Import Selected", command=do_import).pack(pady=10)
+
+
 # Looks for the COM port
 def list_serial_ports():
     ports = serial.tools.list_ports.comports()
@@ -102,16 +291,6 @@ def refresh_ports():
         port_option.configure(values=["No ports found"])
         port_option.set("No ports found")
 
-
-def send_command(cmd):
-    if ser and ser.is_open:
-        try:
-            ser.write((cmd + "\n").encode())
-            append_text(f">>> {cmd}\n")
-        except Exception as e:
-            append_text(f"Write error: {e}\n")
-    else:
-        append_text("Not connected.\n")
 
 # Definitions for commands
 def get_unix_time():
@@ -286,6 +465,36 @@ ToolTip(firmware_choice, "Select the tracker to update firmware")
 
 app.after(100, populate_firmware_menu)
 
+def on_import_google_camera():
+    # Disable the button immediately
+    btn_google_import.configure(state="disabled")
+
+    def worker():
+        qr_url = None
+        accounts = None
+        error = None
+
+        try:
+            qr_url = scan_google_qr_camera()
+            accounts = decode_google_migration_url(qr_url)
+        except Exception as e:
+            error = e
+
+        def finalize():
+            if error:
+                messagebox.showerror("Import Error", str(error))
+            elif accounts:
+                confirm_and_import(accounts)
+            btn_google_import.configure(state="normal")
+
+        app.after(0, finalize)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
+
+
+
 # Download the firmware once user selected and pressed the Firmware button,
 # and also the actual logic for flashing (Resets, puts into DFU, waits for drive to appear, moves the .U2F to the drive)
 def download_firmware():
@@ -391,6 +600,13 @@ entry_secret.grid(row=1, column=1, padx=5, pady=5)
 
 btn_add = ctk.CTkButton(frame_u, text="Add", command=on_add_user)
 btn_add.grid(row=2, column=0, columnspan=2, pady=10)
+
+btn_google_import = ctk.CTkButton(
+    frame_u,
+    text="Import from Google (Camera)",
+    command=on_import_google_camera
+)
+btn_google_import.grid(row=4, column=0, columnspan=2, pady=10)
 
 # Manage tab
 frame_m = tab_manage
