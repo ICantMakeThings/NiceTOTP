@@ -5,6 +5,8 @@ Verry niceeee ;>
 
 <img width="200" height="300" alt="ew" src="https://github.com/user-attachments/assets/44ae206d-7d15-4607-9325-636519ae4e47" />
 
+<img width="1312" height="759" alt="dswwe" src="https://github.com/user-attachments/assets/fb533518-381d-400a-bb54-9906aab24fc3" />
+
 
 # What is NiceTOTP?
 
