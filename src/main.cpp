@@ -12,7 +12,7 @@
 // clear
 // pinsetup (im traumatised from this, i need to fix it or remove it)
 // lock
-// NEW << A app to configure 
+// NEW << A app to configure
 #include <Arduino.h>
 #include <Wire.h>
 #include <RTClib.h>
@@ -32,7 +32,9 @@
 // Constants
 
 #define DFU_MAGIC_UF2_RESET 0x57
-
+bool bothButtonsPressed = false;
+unsigned long bothButtonsPressStart = 0;
+const unsigned long UF2_HOLD_TIME = 10000;
 using namespace Adafruit_LittleFS_Namespace;
 
 BLEUart bleuart;
@@ -80,8 +82,8 @@ bool inPinSetup = false;
 
 struct KeyEntry
 {
-    char username[32];
-    char base32secret[128];
+  char username[32];
+  char base32secret[128];
 };
 
 KeyEntry keys[MAX_KEYS];
@@ -227,69 +229,67 @@ bool loadPin()
 
 void loadKeys()
 {
-    keysCount = 0;
-    memset(keys, 0, sizeof(keys));
+  keysCount = 0;
+  memset(keys, 0, sizeof(keys));
 
-    if (!InternalFS.begin())
+  if (!InternalFS.begin())
+  {
+    Serial.println("FS mount failed");
+    return;
+  }
+
+  if (!InternalFS.exists(KEYS_FILENAME))
+  {
+    Serial.println("No keys file found");
+    return;
+  }
+
+  File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
+  if (!file)
+  {
+    Serial.println("Failed to open keys file");
+    return;
+  }
+
+  while (file.available() && keysCount < MAX_KEYS)
+  {
+    String line = file.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0)
+      continue;
+
+    int sepIndex = line.indexOf(' ');
+    if (sepIndex > 0)
     {
-        Serial.println("FS mount failed");
-        return;
-    }
+      String username = line.substring(0, sepIndex);
+      String secret = line.substring(sepIndex + 1);
 
-    if (!InternalFS.exists(KEYS_FILENAME))
+      secret.replace(" ", "");
+
+      if (username.length() >= sizeof(keys[keysCount].username))
+      {
+        Serial.println("Username too long, skipping");
+        continue;
+      }
+      if (secret.length() >= sizeof(keys[keysCount].base32secret))
+      {
+        Serial.println("Secret too long, skipping");
+        continue;
+      }
+
+      username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
+      secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
+      keysCount++;
+    }
+    else
     {
-        Serial.println("No keys file found");
-        return;
+      Serial.println("Malformed line in keys file, skipping");
     }
+  }
 
-    File file = InternalFS.open(KEYS_FILENAME, FILE_O_READ);
-    if (!file)
-    {
-        Serial.println("Failed to open keys file");
-        return;
-    }
-
-    while (file.available() && keysCount < MAX_KEYS)
-    {
-        String line = file.readStringUntil('\n');
-        line.trim();
-        if (line.length() == 0)
-            continue;
-
-        int sepIndex = line.indexOf(' ');
-        if (sepIndex > 0)
-        {
-            String username = line.substring(0, sepIndex);
-            String secret   = line.substring(sepIndex + 1);
-
-            secret.replace(" ", "");
-
-            if (username.length() >= sizeof(keys[keysCount].username))
-            {
-                Serial.println("Username too long, skipping");
-                continue;
-            }
-            if (secret.length() >= sizeof(keys[keysCount].base32secret))
-            {
-                Serial.println("Secret too long, skipping");
-                continue;
-            }
-
-            username.toCharArray(keys[keysCount].username, sizeof(keys[keysCount].username));
-            secret.toCharArray(keys[keysCount].base32secret, sizeof(keys[keysCount].base32secret));
-            keysCount++;
-        }
-        else
-        {
-            Serial.println("Malformed line in keys file, skipping");
-        }
-    }
-
-    file.close();
-    Serial.printf("Loaded %d keys\n", keysCount);
+  file.close();
+  Serial.printf("Loaded %d keys\n", keysCount);
 }
-
-
 
 void saveKeys()
 {
@@ -573,6 +573,35 @@ void handleButtons()
       lastActivityTime = currentMillis;
     }
   }
+  if (upState && downState)
+  {
+    if (!bothButtonsPressed)
+    {
+      bothButtonsPressed = true;
+      bothButtonsPressStart = millis();
+    }
+    else
+    {
+
+      if (millis() - bothButtonsPressStart >= UF2_HOLD_TIME)
+      {
+        Serial.println("UF2 booting");
+        display.clearDisplay();
+        display.setTextSize(2);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(15, (SCREEN_HEIGHT - 16) / 2);
+        display.println("DFU MODE");
+        display.display();
+
+        NRF_POWER->GPREGRET = DFU_MAGIC_UF2_RESET;
+        NVIC_SystemReset();
+      }
+    }
+  }
+  else
+  {
+    bothButtonsPressed = false;
+  }
 }
 
 // Serial
@@ -818,7 +847,19 @@ void setup()
   pinMode(PIN_013, OUTPUT);
   digitalWrite(PIN_013, HIGH);
   delay(1000);
+  /// DOES NOT WORK ///
+  /*USBDevice.setManufacturerDescriptor("ICantMakeThings");
+  USBDevice.setProductDescriptor("NiceTOTP");
 
+  uint32_t uid0 = NRF_FICR->DEVICEID[0];
+  uint32_t uid1 = NRF_FICR->DEVICEID[1];
+
+  char usb_serial[32];
+  snprintf(usb_serial, sizeof(usb_serial), "%08lX%08lX", uid0, uid1);
+
+  USBDevice.setSerialDescriptor(usb_serial);
+  USBDevice.begin();
+  USBDevice.attach();*/
   Serial.begin(115200);
 
   pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
