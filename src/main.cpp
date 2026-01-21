@@ -847,19 +847,7 @@ void setup()
   pinMode(PIN_013, OUTPUT);
   digitalWrite(PIN_013, HIGH);
   delay(1000);
-  /// DOES NOT WORK ///
-  /*USBDevice.setManufacturerDescriptor("ICantMakeThings");
-  USBDevice.setProductDescriptor("NiceTOTP");
-
-  uint32_t uid0 = NRF_FICR->DEVICEID[0];
-  uint32_t uid1 = NRF_FICR->DEVICEID[1];
-
-  char usb_serial[32];
-  snprintf(usb_serial, sizeof(usb_serial), "%08lX%08lX", uid0, uid1);
-
-  USBDevice.setSerialDescriptor(usb_serial);
-  USBDevice.begin();
-  USBDevice.attach();*/
+  
   Serial.begin(115200);
 
   pinMode(BUTTON_UP_PIN, INPUT_PULLUP);
