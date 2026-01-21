@@ -5,6 +5,8 @@ Verry niceeee ;>
 
 <img width="200" height="300" alt="ew" src="https://github.com/user-attachments/assets/44ae206d-7d15-4607-9325-636519ae4e47" />
 
+<img width="1312" height="759" alt="dswwe" src="https://github.com/user-attachments/assets/fb533518-381d-400a-bb54-9906aab24fc3" />
+
 
 # What is NiceTOTP?
 
@@ -19,6 +21,8 @@ Sleep mode after 1 minuite. battery life info at the bottom
 press a button or plug it in to charge to wake it
 
 [Video here](https://www.youtube.com/watch?v=sLiadPXk7rc)
+
+**NEW!** Import via scanning the QR code on google auth app. all that and more with the python app in the repo.
 
 ## But Why?? 
 
@@ -65,6 +69,10 @@ It still shows the right code tho, but that means the last 8 Seconds are invalid
 Or Find a better one.
 
 **4 month** update, still 20%.. my guy is going strong without charging!
+
+at **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
+
+make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)
 
 ###### More info on my [Site](https://icmt.cc/p/nicetotp/)
 
