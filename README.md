@@ -37,43 +37,31 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 
 *Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
 
-![image](https://github.com/user-attachments/assets/e60bd7d0-8f01-4dfb-97a4-499b21477dde)
 ![image](https://raw.githubusercontent.com/ICantMakeThings/NiceTOTP/refs/heads/main/d36.png)
 
 
 
 
 # Usage
-Commands:
+#### Use the [NiceTOTP-Configurator](https://github.com/ICantMakeThings/NiceTOTP/releases)  (Firmware update doesnt work rn*)
+#### or you can use serial commands:
 - `setunixtime` example: `setunixtime 1751925355` 
 - `add <username> <base32secret>` example: `add test JBSWY3DPEHPK3PXP` ([Compare](https://totp.danhersam.com/?secret=JBSWY3DPEHPK3PXP))
 - `list`
 - `del <GetTheIDFromListCommand>` example: `del 1`
 - `factoryreset` (Power cycle after)
-More.
-Or: NiceTOTP-Configurator! (Firmware update doesnt work rn*)
 
 # Installation
 + Build and flash the project with platformio (Make sure you add nicenano support [here](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support))
 + Or Drag and drop the .UF2 onto the nicenano drive when doubble clicking reset (short rst pin with usbc sheild tapping twice quickly)
 
-# More Info / 1 Month Review
-Using it for one month, The battery has been used up ~20% (750mAh supposedly)
-2 month update, it still only has been used up 20%.. so ye
+# More Info
 
-
-The RTC drifted a whoping 8 seconds in that month, I mean what?!
-
-It still shows the right code tho, but that means the last 8 Seconds are invalid. I will need to see whats up with the RTC
-
-Or Find a better one.
-
-**4 month** update, still 20%.. my guy is going strong without charging!
-
-at **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
-
-make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)
-
++ In 2 months the RTC drifted 8s forward.
++ It still shows the right code tho, but that means the last 8 Seconds are invalid. I will need to see whats up with the RTC
++ At **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
++ Make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)
++ If you want protection over phisical attacks, you want to use something like a st-link and run [approtect.py](https://github.com/ICantMakeThings/NiceTOTP/blob/main/approtect.py) which blocks reading firmware, but there will still be other ways to get keys as a hardware hacker, so just noting!!!
 ###### More info on my [Site](https://icmt.cc/p/nicetotp/)
 
 ![certification-mark-PL000020-wide](https://github.com/user-attachments/assets/abe0bc33-e4d6-4658-8217-302497127993)
