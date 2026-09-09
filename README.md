@@ -14,9 +14,9 @@ Time-based one-time password (TOTP). aka: 2FA!
 
 A alternetive to [Authy](https://www.authy.com/) / [Google Authenticator](https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2). 
 
-Full offline. And Standalone once all Keys have been added.
+Full offline, Air Gapped. And Standalone once all Keys have been added.
 
-Sleep mode after 1 minuite. battery life info at the bottom
+Sleep mode after 1 minute. battery life info at the bottom
 
 press a button or plug it in to charge to wake it
 
