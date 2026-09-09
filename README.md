@@ -54,7 +54,7 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 # Installation
 + Build and flash the project with platformio (Make sure you add nicenano support [here](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support))
 + Or Drag and drop the .UF2 onto the nicenano drive when doubble clicking reset (short rst pin with usbc sheild tapping twice quickly)
-+ If you want to build the .UF2 from source, clone [this](https://github.com/microsoft/uf2/tree/master) repo, and in the root folder do the command `python3 utils/uf2conv.py '/home/YOURUSERNAME/Documents/PlatformIO/Projects/NiceTOTP/.pio/build/nicenano/firmware.hex' --family 0xADA52840 --convert --output NiceTOTP-FromSource.uf2`
++ If you want to build the .UF2 from source, there is a .sh called hex2uf2.sh that builds it.
 
 # More Info
 
