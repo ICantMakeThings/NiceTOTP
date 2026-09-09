@@ -32,6 +32,7 @@ connected = False
 read_thread = None
 stop_read = threading.Event()
 custom_fw_path = None
+heartbeat_job = None
 
 # Pull data from latest releases + file browser
 def fetch_latest_firmware_assets():
@@ -324,7 +325,7 @@ def on_factory_reset():
         send_command("factoryreset")
 
 def connect_to_port():
-    global ser, connected, read_thread, stop_read
+    global ser, connected, read_thread, stop_read, heartbeat_job
 
     port = port_option.get()
     if not port or "No ports" in port:
@@ -333,6 +334,9 @@ def connect_to_port():
 
     if ser and ser.is_open:
         stop_read.set()
+        if heartbeat_job:
+            app.after_cancel(heartbeat_job)
+            heartbeat_job = None
         try:
             ser.close()
         except Exception:
@@ -350,6 +354,7 @@ def connect_to_port():
 
         read_thread = threading.Thread(target=read_serial, daemon=True)
         read_thread.start()
+        heartbeat_job = app.after(1000, send_configurator_heartbeat)
 
     except serial.SerialException as e:
         append_text(f"Failed to connect: {e}\n")
@@ -373,6 +378,18 @@ def send_command(cmd):
             status_label.configure(text="Disconnected", text_color="red")
     else:
         append_text("Not connected.\n")
+
+
+def send_configurator_heartbeat():
+    global heartbeat_job
+    if connected and ser and ser.is_open:
+        try:
+            ser.write(b"configurator\n")
+            heartbeat_job = app.after(2000, send_configurator_heartbeat)
+        except (serial.SerialException, OSError):
+            heartbeat_job = None
+    else:
+        heartbeat_job = None
 
 
 # Show Serial in that box that shows serial

@@ -55,6 +55,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 #define BUTTON_DOWN_PIN PIN_031
 
 const unsigned long INACTIVITY_TIMEOUT = 60000;
+const unsigned long CONFIGURATOR_TIMEOUT = 5000;
 const unsigned long PIN_SETUP_TIMEOUT = 10000;
 const int MAX_PIN_LENGTH = 20;
 const int MAX_KEYS = 50;
@@ -69,6 +70,7 @@ int failedAttempts = 0;
 
 unsigned long lastActivityTime = 0;
 unsigned long lastPinInputTime = 0;
+unsigned long lastConfiguratorHeartbeat = 0;
 
 char devicePin[MAX_PIN_LENGTH + 1] = {0};
 int devicePinLength = 0;
@@ -618,6 +620,14 @@ void processSerialInput()
       {
         serialLine.trim();
 
+        if (serialLine == "configurator")
+        {
+          if (!locked)
+            lastConfiguratorHeartbeat = millis();
+          serialLine = "";
+          continue;
+        }
+
         if (locked)
         {
           Serial.println("Device is locked. Unlock first.");
@@ -915,7 +925,8 @@ void loop()
 */
   displayCode();
 
-  if ((millis() - lastActivityTime) > INACTIVITY_TIMEOUT && !inPinSetup)
+  bool configuratorConnected = (millis() - lastConfiguratorHeartbeat) <= CONFIGURATOR_TIMEOUT;
+  if ((millis() - lastActivityTime) > INACTIVITY_TIMEOUT && !inPinSetup && !configuratorConnected)
   {
     enterUltraSleep();
   }
