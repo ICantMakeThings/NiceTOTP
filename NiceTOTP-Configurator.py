@@ -301,6 +301,31 @@ def on_set_time():
     ts = get_unix_time()
     send_command(f"setunixtime {ts}")
 
+def on_manual_calibration():
+    value = entry_calibration.get().strip()
+    try:
+        offset = int(value)
+    except ValueError:
+        append_text("Enter calibration offset from -128 to 127.\n")
+        return
+    if offset < -128 or offset > 127:
+        append_text("Calibration offset must be between -128 and 127.\n")
+        return
+    send_command(f"manualcalibration {offset}")
+
+def on_clear_calibration():
+    if messagebox.askyesno("Clear Calibration", "Are you sure? Only do this if you know what your doing!!!"):
+        send_command("clearcalibration")
+
+def on_lock_calibration():
+    send_command("lockcalibration")
+
+def on_unlock_calibration():
+    send_command("unlockcalibration")
+
+def on_get_calibration():
+    send_command("getcalibration")
+
 def on_add_user():
     u = entry_user.get().strip()
     s = entry_secret.get().strip()
@@ -644,6 +669,26 @@ btn_factory.grid(row=3, column=0, columnspan=2, pady=20)
 # Set time button
 btn_set_time = ctk.CTkButton(frame_m, text="Set Time", command=on_set_time)
 btn_set_time.grid(row=0, column=11, columnspan=2, pady=10)
+
+ctk.CTkLabel(frame_m, text="Manual aging offset (-128 to 127):").grid(row=1, column=11, padx=5, pady=5, sticky="e")
+entry_calibration = ctk.CTkEntry(frame_m, width=100)
+entry_calibration.insert(0, "0")
+entry_calibration.grid(row=1, column=12, padx=5, pady=5)
+
+btn_manual_calibration = ctk.CTkButton(frame_m, text="Set Manual Calibration", command=on_manual_calibration)
+btn_manual_calibration.grid(row=2, column=11, columnspan=2, pady=5)
+
+btn_clear_calibration = ctk.CTkButton(frame_m, text="Clear Calibration", command=on_clear_calibration)
+btn_clear_calibration.grid(row=3, column=11, columnspan=2, pady=5)
+
+btn_lock_calibration = ctk.CTkButton(frame_m, text="Lock Calibration", command=on_lock_calibration)
+btn_lock_calibration.grid(row=4, column=11, pady=5)
+
+btn_unlock_calibration = ctk.CTkButton(frame_m, text="Unlock Calibration", command=on_unlock_calibration)
+btn_unlock_calibration.grid(row=4, column=12, pady=5)
+
+btn_get_calibration = ctk.CTkButton(frame_m, text="Get Calibration", command=on_get_calibration)
+btn_get_calibration.grid(row=5, column=11, columnspan=2, pady=5)
 
 # CLI
 console = ctk.CTkTextbox(app, height=200)

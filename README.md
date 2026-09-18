@@ -46,6 +46,12 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 #### Use the [NiceTOTP-Configurator](https://github.com/ICantMakeThings/NiceTOTP/releases)  (Firmware update doesnt work rn*)
 #### or you can use serial commands:
 - `setunixtime` example: `setunixtime 1751925355` 
+- The first `setunixtime` stores the real time for future auto-calibration which after 30 days it will compensate for any drift in the DS3231.
+- `manualcalibration <offset>` example: `manualcalibration 3` sets the DS3231 aging register from -128 to 127 and locks automatic calibration
+- `lockcalibration` stops auto-calibration
+- `unlockcalibration` turns back on auto-calibration
+- `getcalibration` reports the aging offset, baseline timestamp, and lock state
+- `clearcalibration` clears the aging correction and removes the stored calibration baseline
 - `add <username> <base32secret>` example: `add test JBSWY3DPEHPK3PXP` ([Compare](https://totp.danhersam.com/?secret=JBSWY3DPEHPK3PXP))
 - `list`
 - `del <GetTheIDFromListCommand>` example: `del 1`
@@ -58,7 +64,7 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 
 # More Info
 
-+ In 2 months the RTC drifted 8s forward.
++ In 2 months the RTC drifted 8s forward. (Now there is a calibration feature, so should be better.)
 + It still shows the right code tho, but that means the last 8 Seconds are invalid. I will need to see whats up with the RTC
 + At **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
 + Make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)

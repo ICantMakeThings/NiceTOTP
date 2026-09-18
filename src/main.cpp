@@ -5,6 +5,8 @@
 // d = down button
 // commands include:
 // setunixtime
+// manualcalibration <aging offset>
+// clearcalibration
 // add <username> <base32secret>
 // factoryreset (power cycle the device)
 // list
@@ -63,6 +65,10 @@ const int MAX_FAILED_ATTEMPTS = 10;
 
 const char *PIN_FILENAME = "/pin.dat";
 const char *KEYS_FILENAME = "/keys.dat";
+const char *CALIBRATION_FILENAME = "/calibration.dat";
+const uint32_t CALIBRATION_INTERVAL = 30UL * 24UL * 60UL * 60UL;
+const uint8_t DS3231_ADDRESS = 0x68;
+const uint8_t DS3231_AGING_REGISTER = 0x10;
 
 bool pinError = false;
 unsigned long pinErrorTime = 0;
@@ -81,6 +87,9 @@ int inputIndex = 0;
 bool locked = true;
 bool pinSet = false;
 bool inPinSetup = false;
+uint32_t originalSetTime = 0;
+int8_t agingOffset = 0;
+bool calibrationLocked = false;
 
 struct KeyEntry
 {
@@ -96,6 +105,64 @@ bool buttonDownPressed = false;
 int selectedKeyIndex = 0;
 
 TOTP totp;
+
+void saveCalibration()
+{
+  if (!InternalFS.begin())
+    return;
+
+  File file = InternalFS.open(CALIBRATION_FILENAME, FILE_O_WRITE);
+  if (!file)
+    return;
+
+  file.write((uint8_t *)&originalSetTime, sizeof(originalSetTime));
+  file.write((uint8_t *)&agingOffset, sizeof(agingOffset));
+  uint8_t lockedValue = calibrationLocked ? 1 : 0;
+  file.write(&lockedValue, sizeof(lockedValue));
+  file.close();
+}
+
+void loadCalibration()
+{
+  originalSetTime = 0;
+  agingOffset = 0;
+  calibrationLocked = false;
+
+  if (!InternalFS.begin() || !InternalFS.exists(CALIBRATION_FILENAME))
+    return;
+
+  File file = InternalFS.open(CALIBRATION_FILENAME, FILE_O_READ);
+  if (!file || file.size() != sizeof(originalSetTime) + sizeof(agingOffset) + 1)
+  {
+    if (file)
+      file.close();
+    return;
+  }
+
+  uint8_t lockedValue;
+  file.read((uint8_t *)&originalSetTime, sizeof(originalSetTime));
+  file.read((uint8_t *)&agingOffset, sizeof(agingOffset));
+  file.read(&lockedValue, sizeof(lockedValue));
+  calibrationLocked = lockedValue != 0;
+  file.close();
+}
+
+int8_t readAgingOffset()
+{
+  Wire.beginTransmission(DS3231_ADDRESS);
+  Wire.write(DS3231_AGING_REGISTER);
+  if (Wire.endTransmission() != 0 || Wire.requestFrom(DS3231_ADDRESS, (uint8_t)1) != 1)
+    return agingOffset;
+  return (int8_t)Wire.read();
+}
+
+bool writeAgingOffset(int8_t value)
+{
+  Wire.beginTransmission(DS3231_ADDRESS);
+  Wire.write(DS3231_AGING_REGISTER);
+  Wire.write((uint8_t)value);
+  return Wire.endTransmission() == 0;
+}
 
 /*  https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support/blob/main/Platformio%20Example%20code/Read%20Batt%20voltage/main.cpp  */
 float readBatteryVoltage()
@@ -701,6 +768,40 @@ void processSerialInput()
           unsigned long unixTime = timeStr.toInt();
           if (unixTime > 0)
           {
+            DateTime rtcBefore = rtc.now();
+            int8_t correction = 0;
+
+            if (originalSetTime == 0)
+            {
+              originalSetTime = unixTime;
+              saveCalibration();
+              Serial.println("Calibration baseline saved ");
+            }
+            else if (!calibrationLocked && unixTime >= originalSetTime && unixTime - originalSetTime >= CALIBRATION_INTERVAL)
+            {
+              int64_t drift = (int64_t)rtcBefore.unixtime() - (int64_t)unixTime;
+              uint32_t elapsed = unixTime - originalSetTime;
+              int32_t agingChange = (int32_t)((drift * 10000000LL) / elapsed);
+              int32_t newAgingOffset = (int32_t)readAgingOffset() + agingChange;
+              if (newAgingOffset < -128)
+                newAgingOffset = -128;
+              if (newAgingOffset > 127)
+                newAgingOffset = 127;
+
+              correction = (int8_t)newAgingOffset;
+              if (writeAgingOffset(correction))
+              {
+                agingOffset = correction;
+                originalSetTime = unixTime;
+                saveCalibration();
+                Serial.printf("Auto-calibrated the RTC: drift %lld seconds, aging offset %d\n", drift, correction);
+              }
+              else
+              {
+                Serial.println("RTC calibration failed... If you think something's wrong, make an issue on github.");
+              }
+            }
+
             rtc.adjust(DateTime(unixTime));
             Serial.print("RTC time set to Unix time: ");
             Serial.println(unixTime);
@@ -709,6 +810,76 @@ void processSerialInput()
           {
             Serial.println("Invalid Unix time");
           }
+        }
+
+        else if (serialLine.startsWith("manualcalibration "))
+        {
+          int value = serialLine.substring(strlen("manualcalibration ")).toInt();
+          if (value < -128 || value > 127)
+          {
+            Serial.println("Manual calibration must be between -128 and 127");
+          }
+          else if (writeAgingOffset((int8_t)value))
+          {
+            agingOffset = (int8_t)value;
+            calibrationLocked = true;
+            saveCalibration();
+            Serial.printf("Manual RTC calibration set to aging offset %d\n", value);
+          }
+          else
+          {
+            Serial.println("RTC aging calibration failed");
+          }
+        }
+
+        else if (serialLine == "clearcalibration")
+        {
+          if (writeAgingOffset(0))
+          {
+            originalSetTime = 0;
+            agingOffset = 0;
+            calibrationLocked = false;
+            if (InternalFS.begin() && InternalFS.exists(CALIBRATION_FILENAME))
+              InternalFS.remove(CALIBRATION_FILENAME);
+            Serial.println("RTC calibration cleared; setunixtime to set a new base.");
+          }
+          else
+          {
+            Serial.println("RTC calibration clear failed");
+          }
+        }
+
+        else if (serialLine == "lockcalibration")
+        {
+          calibrationLocked = true;
+          saveCalibration();
+          Serial.println("RTC auto-calibration locked");
+        }
+
+        else if (serialLine == "unlockcalibration")
+        {
+          calibrationLocked = false;
+          saveCalibration();
+          Serial.println("RTC auto-calibration unlocked");
+        }
+
+        else if (serialLine == "getcalibration")
+        {
+          Serial.printf("RTC aging offset: %d\n", readAgingOffset());
+          if (originalSetTime == 0)
+          {
+            Serial.println("Calibration baseline: NOT SET");
+          }
+          else
+          {
+            DateTime baseline(originalSetTime);
+            char formattedBaseline[] = "YYYY-MM-DD hh:mm:ss";
+            baseline.toString(formattedBaseline);
+            Serial.print("Calibration baseline: ");
+            Serial.println(formattedBaseline);
+          }
+          Serial.print("Calibration locked: ");
+          Serial.println(calibrationLocked ? "YES" : "NO");
         }
 
         else if (serialLine == "list")
@@ -745,10 +916,13 @@ void processSerialInput()
         {
           if (InternalFS.begin())
           {
+            writeAgingOffset(0);
             if (InternalFS.exists(PIN_FILENAME))
               InternalFS.remove(PIN_FILENAME);
             if (InternalFS.exists(KEYS_FILENAME))
               InternalFS.remove(KEYS_FILENAME);
+            if (InternalFS.exists(CALIBRATION_FILENAME))
+              InternalFS.remove(CALIBRATION_FILENAME);
             pinSet = false;
             locked = true;
             keysCount = 0;
@@ -884,6 +1058,8 @@ void setup()
 
   loadPin();
   loadKeys();
+  loadCalibration();
+  agingOffset = readAgingOffset();
 
   if (!pinSet)
   {

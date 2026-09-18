@@ -6,6 +6,7 @@ using namespace Adafruit_LittleFS_Namespace;
 
 const char *PIN_FILENAME = "/pin.dat";
 const char *KEYS_FILENAME = "/keys.dat";
+const char *CALIBRATION_FILENAME = "/calibration.dat";
 
 void setup() {
   if (!InternalFS.begin()) {
@@ -18,6 +19,10 @@ void setup() {
 
   if (InternalFS.exists(KEYS_FILENAME)) {
     InternalFS.remove(KEYS_FILENAME);
+  }
+
+  if (InternalFS.exists(CALIBRATION_FILENAME)) {
+    InternalFS.remove(CALIBRATION_FILENAME);
   }
 }
 
