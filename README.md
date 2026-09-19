@@ -26,7 +26,11 @@ press a button or plug it in to charge to wake it
 
 ## But Why?? 
 
-There are a few reasons why I made this device, mainly to lose dependence of my phone. But not just, What if your phone breaks, bricks, or something else? I rather have lots of devices that don't depend on eachother rather than a all in one for that reason, plus most "universal" stuff performs worse than a specific device for that single function. As of right now, I'd say it's almost complete (enough to daily drive), possibly a few more hardware security features, maybe UI polishing, fixing any bugs i haven't found yet and should be perfect. The cost is ~£6 excluding 3D printing.
+There are a few reasons why I made this device, mainly to lose dependence of my phone. But not just, What if your phone breaks, bricks, or something else? I rather have lots of devices that don't depend on eachother rather than a all in one for that reason, plus most "universal" stuff performs worse than a specific device for that single function. 
+
+As of right now, I'd say it's almost complete, enough to daily drive, possibly a few more hardware security features. The cost is ~£6 excluding 3D printing.
+
+Please note, if someone gets there hands on the physical device, it's possible to extract the keys, i am working on a solution but as of now its not implemented on the repo.
 
 ## Hardware is:
 + Nice!Nano: [AliExpress Link](https://s.click.aliexpress.com/e/_omlmCuu)
