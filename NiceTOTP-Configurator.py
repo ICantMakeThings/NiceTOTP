@@ -33,6 +33,7 @@ read_thread = None
 stop_read = threading.Event()
 custom_fw_path = None
 heartbeat_job = None
+pending_add = None
 
 # Pull data from latest releases + file browser
 def fetch_latest_firmware_assets():
@@ -327,12 +328,15 @@ def on_get_calibration():
     send_command("getcalibration")
 
 def on_add_user():
+    global pending_add
     u = entry_user.get().strip()
     s = entry_secret.get().strip()
     if not u or not s:
         append_text("Username and secret required.\n")
         return
-    send_command(f"add {u} {s}")
+    pending_add = (u, s)
+    if not send_command(f"add {u} {s}"):
+        pending_add = None
 
 def on_list():
     append_text("Listing users...\n")
@@ -392,6 +396,7 @@ def send_command(cmd):
         try:
             ser.write((cmd + "\n").encode())
             append_text(f">>> {cmd}\n")
+            return True
         except (serial.SerialException, OSError) as e:
             append_text(f"[Error] Serial write failed: {e}\n")
             try:
@@ -401,8 +406,26 @@ def send_command(cmd):
             ser = None
             connected = False
             status_label.configure(text="Disconnected", text_color="red")
+            return False
     else:
         append_text("Not connected.\n")
+        return False
+
+
+def handle_add_response(line):
+    global pending_add
+    if pending_add and line.startswith("Added key: "):
+        username, secret = pending_add
+        pending_add = None
+        app.after(0, clear_added_fields, username, secret)
+    elif pending_add and line.startswith(("Error:", "Max keys", "Duplicate key", "Invalid add")):
+        pending_add = None
+
+
+def clear_added_fields(username, secret):
+    if entry_user.get().strip() == username and entry_secret.get().strip() == secret:
+        entry_user.delete(0, "end")
+        entry_secret.delete(0, "end")
 
 
 def send_configurator_heartbeat():
@@ -425,6 +448,7 @@ def read_serial():
             if ser and ser.in_waiting:
                 line = ser.readline().decode(errors="ignore").rstrip('\r\n \t')
                 if line:
+                    handle_add_response(line)
                     append_text(line + '\n')
             else:
                 time.sleep(0.01)

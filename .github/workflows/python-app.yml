@@ -1,0 +1,48 @@
+name: Build Python app
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Linux ZBar library
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install --yes libzbar0
+
+      - name: Install macOS ZBar library
+        if: runner.os == 'macOS'
+        run: brew install zbar
+
+      - name: Install Python dependencies
+        run: python -m pip install --upgrade pip -r requirements.txt
+
+      - name: Build configurator
+        run: pyinstaller --noconfirm NiceTOTP-Configurator.spec
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NiceTOTP-Configurator-Next-${{ runner.os }}
+          path: dist/NiceTOTP-ConfiguratorNext*
+          if-no-files-found: error

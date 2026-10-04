@@ -1,32 +1,45 @@
 
-# NiceTOTP
+# NiceTOTP <img src="https://github.com/user-attachments/assets/abe0bc33-e4d6-4658-8217-302497127993" alt="certification-mark-PL000020-wide" width="200">
 
-Verry niceeee ;>
 
-<img width="200" height="300" alt="ew" src="https://github.com/user-attachments/assets/44ae206d-7d15-4607-9325-636519ae4e47" />
+<img width="200" height="250" alt="ew" src="https://github.com/user-attachments/assets/44ae206d-7d15-4607-9325-636519ae4e47" />
+<img width="300" alt="Repeat new PIN" src="images/img7.png" />
 
-<img width="1312" height="759" alt="dswwe" src="https://github.com/user-attachments/assets/fb533518-381d-400a-bb54-9906aab24fc3" />
 
+## Wiki
+
+- [What is NiceTOTP?](#what-is-nicetotp)
+- [But Why?](#but-why)
+- [Hardware](#hardware-is)
+- [Usage](#usage)
+	- [UI](ui.md)
+- [Installation](#installation)
+	- [Standard installation](#standard-installation)
+	- [Protected installation](#protected-installation)
+- [More Info](#more-info)
+- [Build protected from source](build-protected-from-source.md)
 
 # What is NiceTOTP?
 
-Time-based one-time password (TOTP). aka: 2FA!
-
+Time-based one-time password (TOTP). aka: 2FA! 
 A alternetive to [Authy](https://www.authy.com/) / [Google Authenticator](https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2). 
 
 Full offline, Air Gapped. And Standalone once all Keys have been added.
 
-Sleep mode after 1 minute. battery life info at the bottom
+TOTP keys and other FS are stored in an AES-256-GCM encrypted vault, with a key derived from the passcode using PBKDF2-HMAC-SHA-256. Vaults use a random starting IV followed by monotonically increasing IVs.
 
-press a button or plug it in to charge to wake it
+A four-digit passcode is still vulnerable to offline guessing if an attacker extracts the flash. Use a longer, unpredictable numeric passcode; a lengt of 13 can make a attacker wait up to 8 years on the most common GPU* 
+
 
 [Video here](https://www.youtube.com/watch?v=sLiadPXk7rc)
 
-**NEW!** Import via scanning the QR code on google auth app. all that and more with the python app in the repo.
-
 ## But Why?? 
 
-There are a few reasons why I made this device, mainly to lose dependence of my phone. But not just, What if your phone breaks, bricks, or something else? I rather have lots of devices that don't depend on eachother rather than a all in one for that reason, plus most "universal" stuff performs worse than a specific device for that single function. As of right now, I'd say it's almost complete (enough to daily drive), possibly a few more hardware security features, maybe UI polishing, fixing any bugs i haven't found yet and should be perfect. The cost is ~£6 excluding 3D printing.
+There are a few reasons why I made this device, mainly to lose dependence of my phone. But not just, What if your phone breaks, bricks, or something else? 
+
+I rather have lots of devices that don't depend on eachother rather than a all in one for that reason, plus most "universal" stuff performs worse than a specific device for that single function.
+
+I'd say it's close to complete (With a long enough pin, very much useable and safe), possibly porting to a nRF54LM20A, maybe UI polishing, fixing any bugs i haven't found yet and should be perfect. The cost is ~£20.
 
 ## Hardware is:
 + Nice!Nano: [AliExpress Link](https://s.click.aliexpress.com/e/_omlmCuu)
@@ -43,7 +56,7 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 
 
 # Usage
-#### Use the [NiceTOTP-Configurator](https://github.com/ICantMakeThings/NiceTOTP/releases)  (Firmware update doesnt work rn*)
+#### Use the [NiceTOTP-ConfiguratorNext](https://github.com/ICantMakeThings/NiceTOTP/releases)  (Firmware update doesnt work rn*)
 #### or you can use serial commands:
 - `setunixtime` example: `setunixtime 1751925355` 
 - The first `setunixtime` stores the real time for future auto-calibration which after 30 days it will compensate for any drift in the DS3231.
@@ -58,17 +71,32 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 - `factoryreset` (Power cycle after)
 
 # Installation
-+ Build and flash the project with platformio (Make sure you add nicenano support [here](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support))
+
+### Standard installation
+
+If you don't care about proper security*, download the [NiceTOTP-ConfiguratorNext](https://github.com/ICantMakeThings/NiceTOTP/releases) and use the unsigned `NiceTOTP-V1x.uf2` firmware.
+
+**Or if you just want to test the device without commiting to the protected bootloader / hassle with setting it up or not owning a ST-Link*
+
 + Or Drag and drop the .UF2 onto the nicenano drive when doubble clicking reset (short rst pin with usbc sheild tapping twice quickly)
-+ If you want to build the .UF2 from source, there is a .sh called hex2uf2.sh that builds it.
+
+### Protected installation
+- Download `Signed.zip` from latest release, and follow
+[Protected installation](build-protected-from-source.md) (Also includes installing from source)
+
 
 # More Info
 
-+ In 2 months the RTC drifted 8s forward. (Now there is a calibration feature, so should be better.)
-+ It still shows the right code tho, but that means the last 8 Seconds are invalid. I will need to see whats up with the RTC
-+ At **month 6** it looked like 50%, battery life seems like a year then.. charging it now so yeah.
-+ Make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst (mentioning it if you glued shut the case like i did when i was done with hardware but not firmware.)
-+ If you want protection over phisical attacks, you want to use something like a st-link and run [approtect.py](https://github.com/ICantMakeThings/NiceTOTP/blob/main/approtect.py) which blocks reading firmware, but there will still be other ways to get keys as a hardware hacker, so just noting!!!
-###### More info on my [Site](https://icmt.cc/p/nicetotp/)
++ In 2 months the RTC drifted 8s forward. (Now there is a calibration feature, so should be better, to be commented on further.)
 
-![certification-mark-PL000020-wide](https://github.com/user-attachments/assets/abe0bc33-e4d6-4658-8217-302497127993)
++ Battery seems to last about 1 year with a 1000mAh Battery.
+
++ Make sure not to let it discharge as it will go in a soft brick, to unbrick you just press rst 
+
+
+#### GPU* 
+
+- The algorythm is **50,000 PBKDF2** and the number is the expected value which is ½ of the worse-case scenario.
+- It is based on cracking it with a NVIDIA GeForce RTX 3060 as its the most common GPU based on [Steam Hardware & Software Survey: August 2026.](https://store.steampowered.com/hwsurvey/En)
+- It is recommended to have a pin of at least 13 Charicters
+- You can have a look on [this webiste](https://jmrp.io/tools/pin-brute-force-calculator/) to test around different hardware, make sure PBKDF2 iterations is set to `50000`
