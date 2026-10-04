@@ -5,7 +5,6 @@
 .vscode/ipch
 dist
 build
-NiceTOTP-Configurator.spec
 NiceTOTP-FromSource.uf2
 __pycache__
 src/dump.xcpp
