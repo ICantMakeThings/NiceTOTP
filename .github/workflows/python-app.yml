@@ -44,5 +44,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: NiceTOTP-Configurator-Next-${{ runner.os }}
-          path: dist/NiceTOTP-ConfiguratorNext*
+          path: dist/NiceTOTP-Configurator*
           if-no-files-found: error
