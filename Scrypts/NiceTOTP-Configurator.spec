@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-ROOT_DIR = Path(SPECPATH).parent.parent
+ROOT_DIR = Path(SPECPATH).parent
 
 a = Analysis(
     [str(ROOT_DIR / 'App' / 'NiceTOTP-ConfiguratorNext.py')],

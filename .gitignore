@@ -10,3 +10,4 @@ __pycache__
 src/dump.xcpp
 private.pem
 firmwareSIGNED.zip
+__pycache__
