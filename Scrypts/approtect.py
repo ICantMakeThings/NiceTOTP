@@ -13,9 +13,9 @@ signer = Path.home() / "nrfutil-venv" / "bin" / "adafruit-nrfutil"
 
 def create_signed_package(source, target, env):
 	if not signer.is_file():
-		raise RuntimeError(f"{signer} is missing; run ./setup-nrfutil.sh")
+		raise RuntimeError(f"{signer} is missing; run ./Scrypts/setup-nrfutil.sh")
 	if not private_key.is_file():
-		raise RuntimeError(f"{private_key} is missing; run ./setup-nrfutil.sh")
+		raise RuntimeError(f"{private_key} is missing; run ./Scrypts/setup-nrfutil.sh")
 
 	subprocess.run(
 		[

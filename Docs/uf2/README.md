@@ -105,7 +105,7 @@ This procedure was unfortunately not used for the SAMD51 and NRF52840 below.
 
 #### Family list
 
-The current master list of family IDs is maintained in a [JSON file](utils/uf2families.json).
+The current master list of family IDs is maintained in a [JSON file](../../uf2/utils/uf2families.json).
 
 ### Rationale
 

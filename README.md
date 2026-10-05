@@ -12,12 +12,12 @@
 - [But Why?](#but-why)
 - [Hardware](#hardware-is)
 - [Usage](#usage)
-	- [UI](ui.md)
+	- [UI](Docs/ui.md)
 - [Installation](#installation)
 	- [Standard installation](#standard-installation)
 	- [Protected installation](#protected-installation)
 - [More Info](#more-info)
-- [Build protected from source](build-protected-from-source.md)
+- [Build protected from source](Docs/build-protected-from-source.md)
 
 # What is NiceTOTP?
 
@@ -46,10 +46,7 @@ There are a few reasons why I made this device, mainly to lose dependence of my 
 
 *Note: These are referral links. If you purchase through it, I earn a commission at no extra cost to you.*
 
-![image](https://raw.githubusercontent.com/ICantMakeThings/NiceTOTP/refs/heads/main/d36.png)
-
-
-
+![image](images/d36.png)
 
 # Usage
 #### Use the [NiceTOTP-ConfiguratorNext](https://github.com/ICantMakeThings/NiceTOTP/releases)  (Firmware update doesnt work rn*)
@@ -78,7 +75,7 @@ If you don't care about proper security*, download the [NiceTOTP-ConfiguratorNex
 
 ### Protected installation
 - Download `Signed.zip` from latest release, and follow
-[Protected installation](build-protected-from-source.md) (Also includes installing from source)
+[Protected installation](Docs/build-protected-from-source.md) (Also includes installing from source)
 
 
 # More Info

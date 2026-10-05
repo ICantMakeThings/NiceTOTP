@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOTLOADER_DIR="${BOOTLOADER_DIR:-$PROJECT_DIR/build/Adafruit_nRF52_Bootloader}"
 BOOTLOADER_BUILD_DIR="${BOOTLOADER_BUILD_DIR:-$PROJECT_DIR/build/nice_nano-signed-bootloader}"
 PRIVATE_KEY="${DFU_PRIVATE_KEY:-$PROJECT_DIR/private.pem}"
@@ -24,7 +24,7 @@ if [[ "$PRIVATE_KEY" != "$PROJECT_DIR/private.pem" && ! -f "$PRIVATE_KEY" ]]; th
 fi
 
 if [[ ! -x "$VENV_DIR/bin/adafruit-nrfutil" || ! -f "$PRIVATE_KEY" ]]; then
-  "$PROJECT_DIR/setup-nrfutil.sh"
+  "$PROJECT_DIR/Scrypts/setup-nrfutil.sh"
 fi
 
 if [[ ! -f "$PRIVATE_KEY" ]]; then

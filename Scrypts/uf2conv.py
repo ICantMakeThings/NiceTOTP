@@ -254,11 +254,8 @@ def write_file(name, buf):
 
 
 def load_families():
-    # The expectation is that the `uf2families.json` file is in the same
-    # directory as this script. Make a path that works using `__file__`
-    # which contains the full path to this script.
-    filename = "uf2families.json"
-    pathname = os.path.join(os.path.dirname(os.path.abspath(__file__)), filename)
+    project_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    pathname = os.path.join(project_dir, "uf2", "utils", "uf2families.json")
     with open(pathname) as f:
         raw_families = json.load(f)
 

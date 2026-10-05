@@ -32,7 +32,7 @@ cd NiceTOTP
 Run this **once**:
 
 ```sh
-./setup-nrfutil.sh
+./Scrypts/setup-nrfutil.sh
 ```
 
 This creates `~/nrfutil-venv` and `private.pem` **(WHICH YOU DO NOT SHARE, KEEP SAFE, YOU WILL NEED FOR FUTURE FW UPDATES)** if they do not already exist. The key is local to this checkout by default. Back it up securely, and use the same key for the bootloader and firmware.
@@ -42,7 +42,7 @@ This creates `~/nrfutil-venv` and `private.pem` **(WHICH YOU DO NOT SHARE, KEEP 
 Build the bootloader:
 
 ```sh
-./build-signed-bootloader.sh
+./Scrypts/build-signed-bootloader.sh
 ```
 
 The script clones Adafruit's bootloader source into ignored `build/` and builds it with the public key corresponding to `private.pem`. 
@@ -59,7 +59,7 @@ This target uses `nrfjprog` to program and verify the files. Do not run APPROTEC
 
 For the initial firmware flash, keep `enableApprotect();` commented out, and leave both related lines:
 ```ini
-;extra_scripts = post:approtect.py
+;extra_scripts = post:Scrypts/approtect.py
 ;build_flags = -DAPPROTECT_ENABLED=1
 ```
 commented out in `platformio.ini`. 
@@ -82,10 +82,10 @@ After verifying that the firmware BOOTs, enable protection for the final firmwar
 
 1. `enableApprotect();` in `setup()` in `src/main.cpp`
  
-2. `extra_scripts = post:approtect.py` and `build_flags = -DAPPROTECT_ENABLED=1` in `platformio.ini`, it will look like:
+2. `extra_scripts = post:Scrypts/approtect.py` and `build_flags = -DAPPROTECT_ENABLED=1` in `platformio.ini`, it will look like:
 
 ```ini
-extra_scripts = post:approtect.py
+extra_scripts = post:Scrypts/approtect.py
 build_flags = -DAPPROTECT_ENABLED=1
 ```
 
@@ -105,8 +105,8 @@ The upload script signs the firmware with the local key and uses `adafruit-nrfut
 Install Python 3 and the app's dependencies, then package the Qt Quick configurator with PyInstaller:
 
 ```sh
-python -m pip install -r requirements.txt
-pyinstaller --noconfirm NiceTOTP-Configurator.spec
+python -m pip install -r Scrypts/requirements.txt
+pyinstaller --noconfirm Scrypts/NiceTOTP-Configurator.spec
 ```
 
 The packaged application is written to `dist/`. QR image import uses ZBar; install its shared library before running the app:

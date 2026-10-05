@@ -1,11 +1,18 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 
+from pathlib import Path
+
+ROOT_DIR = Path(SPECPATH).parent.parent
+
 a = Analysis(
-    ['NiceTOTP-ConfiguratorNext.py'],
-    pathex=[],
+    [str(ROOT_DIR / 'App' / 'NiceTOTP-ConfiguratorNext.py')],
+    pathex=[str(ROOT_DIR / 'App')],
     binaries=[],
-    datas=[('NiceTOTP-ConfiguratorNext.qml', '.')],
+    datas=[
+        (str(ROOT_DIR / 'App' / 'NiceTOTP-ConfiguratorNext.qml'), '.'),
+        (str(ROOT_DIR / 'App' / 'icon.webp'), '.'),
+    ],
     hiddenimports=['migration_payload_pb2'],
     hookspath=[],
     hooksconfig={},

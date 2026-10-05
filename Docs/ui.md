@@ -18,7 +18,7 @@
 
 When the device is locked, the display shows the PIN screen.
 
-<img width="300" alt="Login PIN screen" src="images/47.JPG" />
+<img width="300" alt="Login PIN screen" src="../images/47.JPG" />
 
 ### **Entering a PIN**
 
@@ -37,7 +37,7 @@ When the device is locked, the display shows the PIN screen.
 
 After unlocking, the main screen displays the current TOTP code.
 
-<img width="300" alt="Main TOTP screen" src="images/38.JPG" />
+<img width="300" alt="Main TOTP screen" src="../images/38.JPG" />
 
 * **Left** - previous account
 * **Right** - next account
@@ -51,7 +51,7 @@ NiceTOTP automatically goes to sleep after **60 seconds of inactivity**.
 
 From the main TOTP screen, **hold Left + Right** to open the settings menu.
 
-<img width="300" alt="Settings menu" src="images/39.JPG" />
+<img width="300" alt="Settings menu" src="../images/39.JPG" />
 
 The menu as of [V14](https://github.com/ICantMakeThings/NiceTOTP/releases/tag/NiceTOTP-V014) contains:
 
@@ -69,7 +69,7 @@ The selected item is inverted.
 
 Select **Clock** from the settings menu.
 
-<img width="300" alt="Clock settings" src="images/40.JPG" />
+<img width="300" alt="Clock settings" src="../images/40.JPG" />
 
 The clock settings allow you to change:
 
@@ -87,17 +87,17 @@ Select **Change PIN** from the settings menu.
 
 ### **1. Verify current PIN**
 
-<img width*="300" alt="Verify current PIN" src="images/41.JPG" />
+<img width*="300" alt="Verify current PIN" src="../images/41.JPG" />
 
 - Enter your current PIN.
 
-<img width="300" alt="Checking PIN" src="images/42.JPG" />
+<img width="300" alt="Checking PIN" src="../images/42.JPG" />
 
 ### **2. Enter the new PIN**
 
 After the current PIN is verified, enter your new PIN.
 
-<img width="300" alt="New PIN" src="images/44.JPG" />
+<img width="300" alt="New PIN" src="../images/44.JPG" />
 
 
 - The display shows the estimated brute-force time as the PIN gets longer.
@@ -115,7 +115,7 @@ A PIN must be between **4 and 20 characters**.
 
 Enter the same PIN again.
 
-<img width="300" alt="Repeat new PIN" src="images/45.JPG" />
+<img width="300" alt="Repeat new PIN" src="../images/45.JPG" />
 
 If both PIN entries match, the new PIN is saved.
 
@@ -124,14 +124,14 @@ If both PIN entries match, the new PIN is saved.
 # **App UI**
 
 
-<img width="300" alt="Repeat new PIN" src="images/img1.png" />
+<img width="300" alt="Repeat new PIN" src="../images/img1.png" />
 
 
-<img width="300" alt="Repeat new PIN" src="images/img2.png" />
+<img width="300" alt="Repeat new PIN" src="../images/img2.png" />
 
 
-<img width="300" alt="Repeat new PIN" src="images/img3.png" />
+<img width="300" alt="Repeat new PIN" src="../images/img3.png" />
 
-<img width="300" alt="Repeat new PIN" src="images/img4.png" />
+<img width="300" alt="Repeat new PIN" src="../images/img4.png" />
 
 
