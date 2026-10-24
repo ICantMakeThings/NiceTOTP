@@ -14,7 +14,14 @@ The bootloader is signed. **Keep `private.pem` private and backed up;** do not c
 
 Get prerequisites:
 
-Install: Git, Python 3, CMake, Make, the ARM GNU toolchain (`arm-none-eabi-gcc`), PlatformIO Core, Nordic nRF Command Line Tools (`nrfjprog`), and SEGGER J-Link. Add nice!nano support to PlatformIO using [this guide](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support).
+On Linux, install:
+
+```sh
+sudo apt update
+sudo apt install git python3 python3-venv python3-pip cmake make gcc-arm-none-eabi
+```
+
+Also install PlatformIO Core, Nordic nRF Command Line Tools (`nrfjprog`), and SEGGER J-Link. Add nice!nano support to PlatformIO using [this guide](https://github.com/ICantMakeThings/Nicenano-NRF52-Supermini-PlatformIO-Support). Or running `curl -fsSL https://scr.icmt.cc/nicenano.sh | bash`
 
 Clone this repository:
 
@@ -27,7 +34,7 @@ open its root directory:
 cd NiceTOTP
 ```
 
-## 2. Create the signing key
+## 2. Create the venv, signing key, ect.
 
 Run this **once**:
 
@@ -35,7 +42,8 @@ Run this **once**:
 ./Scrypts/setup-nrfutil.sh
 ```
 
-This creates `~/nrfutil-venv` and `private.pem` **(WHICH YOU DO NOT SHARE, KEEP SAFE, YOU WILL NEED FOR FUTURE FW UPDATES)** if they do not already exist. The key is local to this checkout by default. Back it up securely, and use the same key for the bootloader and firmware.
+This creates `~/nrfutil-venv` and `private.pem` **(WHICH YOU DO NOT SHARE, KEEP SAFE, YOU WILL NEED FOR FUTURE FW UPDATES)**
+if they do not already exist. The key is local to this checkout by default. Back it up securely, and use the same key for the bootloader and firmware.
 
 ## 3. Build and flash the signed bootloader
 

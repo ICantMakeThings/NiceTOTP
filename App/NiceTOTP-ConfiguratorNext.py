@@ -59,7 +59,11 @@ class UsbSerialTransport:
                 str(value or "")
                 for value in (port.product, port.manufacturer, port.description)
             ).lower()
-            if "nicetotp" in identity or "icantmakethings" in identity:
+            if (
+                "nicetotp" in identity
+                or "icantmakethings" in identity
+                or "seeed studio xiao nrf54lm20a" in identity ## 0.0 whats going on here? you know very well ;>
+            ):
                 identified.append(port.device)
                 continue
 
